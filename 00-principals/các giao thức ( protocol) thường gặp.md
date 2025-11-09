@@ -500,133 +500,331 @@ HELP: Hiển thị trợ giúp lệnh.
 ---
 
 # SMTP - Simple Mail Transfer Protocol
-**Khái niệm:**  
-Giao thức gửi email giữa mail clients và mail servers (port 25, 465, 587).
+**Định nghĩa:**  
+- **SMTP** là viết tắt của **Simple Mail Transfer Protocol (Giao thức Truyền tải Thư tin Đơn giản hóa)**. Đây là một giao thức giao tiếp được sử dụng để gửi và nhận email qua Internet. Máy chủ thư và các công cụ truyền thư (MTA) sử dụng SMTP để gửi, nhận và chuyển tiếp thư điện tử.
 
-### 🔹 Cách hoạt động
-- Dùng để **gửi** mail, không nhận.  
-- Mail server sử dụng SMTP để chuyển tiếp mail đến đích.
+- **SMTPS (Giao thức Truyền tải Thư tin Đơn giản hóa Bảo Mật)** là một phương pháp bảo mật SMTP bằng cách sử dụng bảo mật lớp truyền tải. Nó được dùng để xác thực các đối tác truyền thông, tính toàn vẹn và tính bảo mật của dữ liệu. 
++ Nó sử dụng **SSL (Lớp Cổng Bảo mật)** hoặc **TLS (Bảo mật Lớp Truyền tải)** để thiết lập kết nối bảo mật, đảm bảo tính bảo mật và tính toàn vẹn của việc truyền email. 
+* Chứng chỉ SSL/TLS được sử dụng để thiết lập kết nối bảo mật trong SMTPS, đảm bảo tính bảo mật và toàn vẹn dữ liệu khi truyền email.
+* **SSL (Lớp Cổng Bảo mật)** và **TLS (Bảo mật Lớp Truyền tải)** là các giao thức bảo mật được sử dụng để mã hóa kết nối **SMTP**. **TLS** là phiên bản cải tiến và an toàn hơn của SSL, thường được ưu tiên sử dụng trong các kết nối bảo mật hiện đại.
++ Máy khách và máy chủ phát ra SMTP bình thường ở lớp ứng dụng và kết nối được bảo mật bằng SSL hoặc TLS.
 
-### 🔹 Ưu / Nhược
-✅ Chuẩn mở, tương thích rộng.  
-❌ Không mã hóa mặc định → cần **STARTTLS** hoặc SSL/TLS.
+## Máy Chủ SMTP
+- Máy chủ **SMTP**, còn được gọi là **máy chủ thư đi**, là một máy tính hoặc phần mềm xử lý các email gửi đi. Nói chung, một máy chủ thư là một hệ thống tập hợp, xử lý và gửi email. Máy chủ SMTP đề cập cụ thể đến thành phần của máy chủ thư sử dụng Giao thức Truyền tải Thư tin Đơn giản hóa (SMTP) để gửi thư đi. Trong khi máy chủ thư xử lý cả email đến và đi, thì máy chủ SMTP chỉ quan tâm đến tác vụ gửi và chuyển tiếp email gửi đi đến các đích phù hợp. Nó cũng có thể được gọi là một máy chủ email gửi đi.
++ Ví dụ : Máy chủ SMTP cho Gmail là smtp.gmail.com. Khi định cấu hình máy khách email hoặc máy chủ của bạn để gửi email bằng Gmail, bạn thường sử dụng địa chỉ máy chủ SMTP này cùng với thông tin chứng thực tài khoản Gmail của mình.
+
+## Cách hoạt động 
+- Trong mô hình **Giao thức Truyền tải Thư tin Đơn giản hóa (SMTP)**, máy khách email hoặc máy chủ của người gửi hoạt động như máy khách SMTP và máy chủ email của người gửi hoạt động như máy chủ SMTP. Máy khách này khởi tạo kết nối đến máy chủ và truyền email, hoàn thành bằng các chi tiết người nhận, chủ đề và nội dung. Máy chủ xử lý email này và xác định máy chủ tiếp theo phù hợp dựa trên địa chỉ của người nhận. Máy chủ tiếp theo này có thể là một máy chủ SMTP khác trong tuyến đường truyền hoặc đích cuối cùng, tức là máy chủ email của người nhận. Khi tin nhắn đến máy chủ của người nhận, nó sẽ được gửi đến hộp thư đến của người nhận bằng một giao thức khác, ví dụ như POP hoặc IMAP.
+
+### Cách các máy chủ SMTP gửi email 
+Máy chủ SMTP gửi email bằng cách làm theo lần lượt các bước:
+- Đầu tiên, máy khách email hoặc máy chủ của người gửi thiết lập kết nối với máy chủ SMTP của người nhận và cung cấp thông tin cần thiết, ví dụ như địa chỉ email của người nhận. 
+- Sau đó, máy chủ SMTP xử lý thông tin này và xác minh địa chỉ của người nhận để quyết định có chấp nhận email hay không. 
++ Nếu địa chỉ của người nhận hợp lệ, email sẽ được xếp hàng để gửi. 
+- Tiếp theo, máy chủ của người nhận sẽ cố gắng gửi email đến hộp thư đến của người nhận hoặc một thư mục được chỉ định.
+
+## Thiết Lập Máy Chủ SMTP
+- Thiết lập máy chủ SMTP yêu cầu cài đặt phần mềm máy chủ SMTP trên máy tính, máy chủ hoặc trong đám mây. Các bước cụ thể để thiết lập máy chủ SMTP phụ thuộc vào phần mềm mà bạn chọn. Nói chung, bạn cần định cấu hình cài đặt của máy chủ, ví dụ như địa chỉ máy chủ, số cổng, giao thức bảo mật và các tùy chọn xác thực. Bạn cũng có thể phải định cấu hình cài đặt DNS và quy tắc tường lửa để đảm bảo gửi email phù hợp.
+
+### Thiết lập SMTP dựa trên đám mây
+Thiết lập dịch vụ SMTP (Giao thức truyền thư đơn giản) dựa trên đám mây thường liên quan đến việc sử dụng nhà cung cấp dịch vụ email bên thứ ba. Sau đây là các bước chung để thiết lập dịch vụ SMTP dựa trên đám mây:
+- **Bước 1:** Chọn nhà cung cấp dịch vụ email
+Nghiên cứu và chọn nhà cung cấp dịch vụ email dựa trên đám mây có uy tín chuyên cung cấp dịch vụ SMTP. Một số tùy chọn phổ biến bao gồm Amazon SES (Simple Email Service), SendGrid, Mailgun và Sendinblue.
+- **Bước 2:** Đăng ký tài khoản
+Tạo tài khoản với nhà cung cấp dịch vụ email được chọn. Bạn có thể cần cung cấp thông tin liên hệ và thanh toán của mình, phụ thuộc vào yêu cầu của nhà cung cấp.
+- **Bước 3:** Xác minh miền của bạn
+Xác minh miền mà bạn sẽ sử dụng để gửi email. Bước này liên quan đến việc chứng minh quyền sở hữu hoặc ủy quyền miền cho nhà cung cấp dịch vụ email. Quá trình xác minh chính xác sẽ khác nhau giữa các nhà cung cấp nhưng thường liên quan đến việc thêm bản ghi DNS hoặc sửa đổi cài đặt DNS.
+- **Bước 4:** Định cấu hình cài đặt SMTP
+Truy cập cài đặt SMTP do nhà cung cấp dịch vụ email của bạn cung cấp. Các cài đặt này thường bao gồm địa chỉ máy chủ SMTP, số cổng, tùy chọn mã hóa (SSL/TLS) và thông tin chứng thực (tên người dùng và mật khẩu/khóa API).
+- **Bước 5:**Thiết lập gửi email
+Định cấu hình ứng dụng hoặc máy khách email của bạn để sử dụng dịch vụ SMTP dựa trên đám mây. Điều này liên quan đến việc cập nhật cài đặt máy chủ SMTP trong cấu hình email của ứng dụng. Bạn sẽ cần nhập địa chỉ máy chủ SMTP, số cổng và thông tin xác thực được cung cấp bởi nhà cung cấp dịch vụ email của bạn.
+- **Bước 6:** Kiểm tra và gửi email
+Kiểm tra cấu hình SMTP bằng cách gửi email thử nghiệm từ ứng dụng hoặc máy khách email của bạn. Xác minh rằng email được gửi và nhận thành công mà không gặp bất kỳ sự cố nào. Bạn cũng có thể thực hiện kiểm tra bổ sung, ví dụ như kiểm tra khả năng gửi email và theo dõi số liệu email, bằng cách sử dụng các tính năng được cung cấp bởi nhà cung cấp dịch vụ email của bạn.
+
+
+> Lưu ý: Điều quan trọng là phải tham khảo tài liệu và tài nguyên hỗ trợ được cung cấp bởi nhà cung cấp dịch vụ email được chọn để biết các hướng dẫn cụ thể phù hợp với nền tảng của họ. Họ có thể cung cấp hướng dẫn từng bước và hỗ trợ khắc phục sự cố để đảm bảo thiết lập thành công dịch vụ SMTP dựa trên đám mây.
 
 ---
 
 # HTTP - Hypertext Transfer Protocol
 **Khái niệm:**  
-Giao thức nền tảng của web, truyền dữ liệu giữa trình duyệt và web server (port 80).
+**HTTP (Hypertext Transfer Protocol)** là giao thức truyền siêu văn bản, được phát triển bởi **Tim Berners-Lee** tại CERN vào năm 1989 để hỗ trợ truyền thông tin trong **World Wide Web**. Phiên bản đầu tiên (HTTP/0.9) được công bố năm 1991, chỉ hỗ trợ phương thức GET đơn giản. Các phiên bản sau được chuẩn hóa bởi IETF và W3C qua các RFC.
 
-### 🔹 Đặc điểm
-- **Stateless** (mỗi request độc lập).  
-- Dạng text, dễ đọc.  
-- Các phương thức phổ biến: `GET`, `POST`, `PUT`, `DELETE`.
+- **HTTP nằm ở tầng ứng dụng (Application Layer)** của mô hình **TCP/IP**, trên tầng vận chuyển (Transport Layer - thường là TCP) và tầng mạng (Network Layer - IP). Nó quy định cách trao đổi dữ liệu web, **không quan tâm trực tiếp đến các tầng dưới **(như router hoặc modem). HTTP **có thể sử dụng bất kỳ giao thức vận chuyển đáng tin cậy nào, nhưng thường dùng TCP (cổng 80 cho không mã hóa) hoặc TLS-encrypted TCP (cổng 443 cho HTTPS). HTTP/3 sử dụng QUIC/UDP để tối ưu hóa.**
 
-### 🔹 Phiên bản bảo mật
-→ **HTTPS (HTTP Secure)** dùng TLS (port 443).
+## Các phiên bản chính
+- **HTTP/0.9 (1991):** Phiên bản cơ bản, chỉ hỗ trợ GET để lấy tài nguyên HTML, không có header, kết nối luôn đóng sau phản hồi. Đã lỗi thời và bị loại bỏ.
+- **HTTP/1.0 (RFC 1945, 1996):** Thêm header, phương thức HEAD và POST; sử dụng kết nối TCP riêng biệt cho mỗi yêu cầu.
+- **HTTP/1.1 (RFC 2616 năm 1999, cập nhật RFC 7230-7235 năm 2014 và RFC 9112 năm 2022):** Giới thiệu kết nối persistent, pipelining (gửi nhiều yêu cầu mà không chờ phản hồi), chunked encoding, byte-range requests, và header Host bắt buộc cho virtual hosting. Đây là phiên bản tiêu chuẩn internet.
+- **HTTP/2 (RFC 7540 năm 2015, cập nhật RFC 9113 năm 2022):** Dựa trên SPDY của Google, sử dụng binary framing để nén header, multiplexing (nhiều luồng trên một kết nối), server push. Yêu cầu TLS cho bảo mật.
+- **HTTP/3 (RFC 9114 năm 2022):** Sử dụng QUIC trên UDP thay vì TCP để giảm độ trễ, tránh head-of-line blocking, và cải thiện xử lý tắc nghẽn. Sử dụng QPACK để nén header.
+
+## Cách hoạt động 
+HTTP hoạt động theo mô hình **client-server**:
+
+- **Client:** Thường là trình duyệt web (user-agent như Firefox, Safari) hoặc công cụ khác, gửi yêu cầu để lấy tài nguyên (HTML, hình ảnh, script). Client khởi tạo kết nối và xử lý phản hồi để hiển thị trang web.
+
+- **Server:** Máy chủ web (như Apache) nhận yêu cầu, xử lý và gửi phản hồi chứa dữ liệu tương ứng. Có thể là một máy hoặc nhóm máy (load balancing), chia sẻ IP qua header Host.
+
+>Các trung gian như proxy có thể nằm giữa: transparent (chuyển tiếp không thay đổi) hoặc non-transparent (thay đổi yêu cầu cho cache, lọc, xác thực).
+
+- **HTTP là giao thức không trạng thái (stateless):** Server không lưu trữ thông tin về các yêu cầu trước của client, mỗi yêu cầu độc lập. Điều này đơn giản hóa server nhưng phức tạp hóa ứng dụng cần trạng thái (như giỏ hàng). Để duy trì trạng thái, sử dụng cookie, biến ẩn trong form, hoặc session qua header. Không phải là không có session; cookie cho phép session stateful.
+
+<img src="/images/base/http-1.png">
+
+```
+Client mở kết nối TCP đến server (cổng 80 hoặc 443)
+                    ||
+Server chấp nhận kết nối
+                    ||
+Client gửi bản tin HTTP request, server xử lý và gửi response
+                    ||
+Sau đó, kết nối có thể đóng hoặc tái sử dụng. 
+```
+
+>HTTP yêu cầu giao thức vận chuyển đáng tin cậy; không dùng UDP trừ HTTP/3 với QUIC.
+
+### Non-Persistent vs Persistent
+- **Non-Persistent HTTP (HTTP/1.0 mặc định):** Mỗi đối tượng (file) sử dụng một kết nối TCP riêng. Ưu: Đơn giản. Nhược: Tốn thời gian thiết lập TCP nhiều lần (2 RTT cho kết nối + 2 RTT cho file), trình duyệt thường mở nhiều kết nối song song để tải nhanh hơn.
+- **Persistent HTTP (HTTP/1.1 trở lên):** Nhiều đối tượng tải qua một kết nối duy nhất. Client gửi yêu cầu ngay khi cần mà không chờ, server giữ kết nối mở sau phản hồi. Ưu: Giảm độ trễ, chỉ khoảng 2 RTT cho tất cả đối tượng. Có pipelining (gửi nhiều request liên tục) nhưng khó triển khai và ít dùng. Header Connection kiểm soát (ví dụ: Connection: keep-alive).
+
+> HTTP/2 cải tiến bằng multiplexing (nhiều luồng trên một kết nối), HTTP/3 tránh tắc nghẽn TCP.
+
+## Bản Tin HTTP
+- Cú pháp bản tin request thường ở dạng text (HTTP/1.x), chia dòng dễ đọc 
+
+- Cấu trúc: 
++ **Request Line:** Method SP Request-URI SP HTTP-Version CRLF (ví dụ: GET /index.html HTTP/1.1).
++ **Headers:** Các trường như Host: www.example.com, User-Agent: Mozilla/5.0, Accept-Language: en-US (một dòng mỗi header, kết thúc bằng dòng trống).
++ **Entity Body:** Tùy chọn, cho dữ liệu như form trong POST.
+
+ví dụ :
+```
+GET / HTTP/1.1
+Host: developer.mozilla.org
+Accept-Language: fr
+```
+
+## Phương Thức (Methods)
+Phương thức định nghĩa hành động, case-sensitive. Server phải hỗ trợ GET và HEAD; các khác tùy chọn. An toàn (safe: không thay đổi server), idempotent (lặp lại không thay đổi kết quả), cacheable.
+
+| Phương thức | Mô tả | Body? | Safe? | Idempotent? | Cacheable? | Phiên bản |
+|-------------|-------|-------|-------|-------------|------------|-----------|
+| GET | Lấy tài nguyên (bookmarkable, ưu tiên cho đọc). | Optional | Yes | Yes | Yes | 0.9+ |
+| HEAD | Như GET nhưng chỉ header (lấy metadata như kích thước). | Optional | Yes | Yes | Yes | 1.0+ |
+| POST | Gửi dữ liệu (form, upload), có thể thay đổi server. | Yes | No | No | Yes | 1.0+ |
+| PUT | Tạo/thay thế tài nguyên tại URI. | Yes | No | Yes | No | 1.1+ |
+| DELETE | Xóa tài nguyên tại URI. | Optional | No | Yes | No | 1.1+ |
+| OPTIONS | Lấy phương thức hỗ trợ cho tài nguyên. | Optional | Yes | Yes | No | 1.1+ |
+| CONNECT | Thiết lập tunnel (cho proxy). | Optional | No | No | No | 1.1+ |
+| TRACE | Echo request cho debug. | No | Yes | Yes | No | 1.1+ |
+| PATCH | Sửa đổi một phần tài nguyên (tiết kiệm băng thông). | Yes | No | No | No | RFC 5789 |
+
+
+## Response
+
+Bản tin response tương tự:
+- Status Line: HTTP-Version SP Status-Code SP Reason-Phrase CRLF (ví dụ: HTTP/1.1 200 OK).
+- Headers: Như Date, Server, Content-Type, Last-Modified.
+- Entity Body: Tài nguyên yêu cầu (HTML, dữ liệu).
+
+Ví dụ response:
+```
+HTTP/1.1 200 OK
+Date: Sat, 09 Oct 2010 14:28:02 GMT
+Server: Apache
+Content-Type: text/html
+
+<!doctype html>… (nội dung)
+```
+
+## Mã Trạng Thái (Status Codes)
+3 chữ số, phân loại theo chữ số đầu; reason phrase mô tả ngắn.
+
+**1xx Informational:** Tiếp tục xử lý (ví dụ: 100 Continue).
+**2xx Success:** Thành công (200 OK: yêu cầu thành công với body; 204 No Content: không body).
+**3xx Redirection:** Cần hành động thêm (301 Moved Permanently: di chuyển vĩnh viễn; 302 Found: tạm thời).
+**4xx Client Error:** Lỗi client (400 Bad Request: cú pháp sai; 403 Forbidden: cấm truy cập; 404 Not Found: không tìm thấy).
+**5xx Server Error:** Lỗi server (500 Internal Server Error: lỗi chung; 503 Service Unavailable: quá tải tạm thời).
+
+> HTTPS là phiên bản bảo mật của HTTP, sử dụng TLS (port 443) để mã hóa, chống nghe lén và giả mạo. Hơn 85% website sử dụng HTTPS. HTTP/2 và HTTP/3 thường yêu cầu TLS. Xác thực: Basic (username/password base64), Digest (hashed). Header như Do-Not-Track cho quyền riêng tư. Stateless giúp tránh hijacking, nhưng cookie cần HTTPS để an toàn.
+
+
 
 ---
 
 # SNMP - Simple Network Management Protocol
 **Khái niệm:**  
-Dùng để **giám sát và quản lý thiết bị mạng** (router, switch, server) qua port 161/162 (UDP).
+- SNMP, viết tắt của Simple Network Management Protocol, là một giao thức chuẩn được sử dụng rộng rãi trong quản lý mạng dựa trên IP.
 
-### 🔹 Cách hoạt động
-- Thiết bị = **Agent**, trung tâm quản lý = **Manager**.  
-- Agent gửi thông tin (MIB) cho Manager.  
-- Có 3 phiên bản: v1, v2c, v3 (v3 có mã hóa & xác thực).
++ Nó cho phép các quản trị viên thu thập dữ liệu về hiệu suất, tình trạng và cấu hình của các thiết bị như router, switch, máy chủ, máy in hoặc thậm chí các thiết bị IoT, giúp phát hiện sớm các vấn đề như tắc nghẽn mạng hoặc lỗi phần cứng.
 
-### 🔹 Ứng dụng
-Giám sát CPU, RAM, traffic, cảnh báo thiết bị lỗi.
++ SNMP hoạt động chủ yếu ở tầng ứng dụng của mô hình TCP/IP, tập trung vào việc trao đổi thông tin quản lý mà không làm gián đoạn hoạt động chính của thiết bị, từ đó hỗ trợ giám sát thời gian thực và tự động hóa các nhiệm vụ bảo trì.
+
+> Dùng để **giám sát và quản lý thiết bị mạng** (router, switch, server) qua port 161/162 (UDP).
+
+## Các Phiên bản Chính
+- **SNMPv1**
+
+Đây là phiên bản cơ bản nhất, hỗ trợ các chức năng đọc và ghi dữ liệu quản lý đơn giản, chẳng hạn như lấy giá trị biến hoặc thay đổi cài đặt từ xa.
+Xác thực dựa trên community string (một chuỗi mật khẩu đơn giản), nhưng toàn bộ dữ liệu được truyền dưới dạng văn bản thuần, dẫn đến rủi ro bị chặn bắt và giả mạo thông tin.
+
+- **SNMPv2c**
+
+Cải tiến từ v1 bằng cách thêm hỗ trợ cho các thông báo lớn hơn (trap) và lệnh get-bulk, cho phép lấy một lượng lớn dữ liệu chỉ trong một yêu cầu, rất hữu ích cho mạng lớn để giảm tải.
+Vẫn giữ cơ chế xác thực community string mà không mã hóa, nên dễ bị khai thác trong môi trường không an toàn, nhưng tăng hiệu quả xử lý dữ liệu so với phiên bản trước.
+
+- **SNMPv3**
+
+Tập trung vào bảo mật cao cấp, với mô hình USM (User-based Security Model) cho phép xác thực người dùng qua các thuật toán như MD5 hoặc SHA, đồng thời mã hóa dữ liệu bằng DES hoặc AES để bảo vệ khỏi nghe lén.
+Thêm kiểm soát truy cập chi tiết dựa trên người dùng và ngữ cảnh, giúp phân quyền cụ thể cho từng loại dữ liệu, làm cho nó phù hợp với các mạng doanh nghiệp yêu cầu tuân thủ tiêu chuẩn an ninh.
+## Cách hoạt động
+- SNMP sử dụng mô hình manager-agent: Manager là phần mềm trung tâm (như NMS - Network Management System) gửi yêu cầu đến agent cài đặt trên thiết bị để thu thập dữ liệu.
+- Các lệnh cơ bản bao gồm Get (lấy giá trị cụ thể từ biến), Set (thay đổi cấu hình như bật/tắt cổng), và Trap (agent tự động gửi thông báo về sự kiện bất thường như mất kết nối hoặc quá tải CPU).
+- Giao thức chạy trên UDP (cổng 161 cho yêu cầu manager-agent, cổng 162 cho trap), giúp truyền nhanh và tiết kiệm tài nguyên, nhưng có thể mất gói tin nên thường kết hợp với cơ chế retry.
+- Dữ liệu được tổ chức trong MIB (Management Information Base), một cấu trúc cây hierarchical với các OID (Object Identifier) độc đáo cho từng biến, ví dụ như sysUpTime để theo dõi thời gian hoạt động của thiết bị.
+
+### Đặc điểm Nổi bật
+**Ưu điểm:** Thiết kế đơn giản giúp dễ tích hợp với hầu hết thiết bị mạng, hỗ trợ giám sát quy mô lớn mà không cần tài nguyên cao, và cho phép tùy chỉnh qua các MIB mở rộng từ nhà sản xuất.
+**Nhược điểm:** Các phiên bản cũ dễ bị tấn công do thiếu mã hóa, dẫn đến rủi ro lộ thông tin nhạy cảm; cần cấu hình firewall cẩn thận để hạn chế truy cập không mong muốn và thường kết hợp với VPN cho môi trường công khai.
+---
+# Telnet 
+**Khái niệm:**  
+Telnet là giao thức mạng cổ điển dùng để cung cấp truy cập từ xa qua giao diện terminal ảo, cho phép người dùng kết nối và quản lý thiết bị như thể đang sử dụng trực tiếp.
+
+- Nó hỗ trợ thực thi lệnh trên server từ xa, thường áp dụng cho các thiết bị mạng cũ như router hoặc hệ thống legacy nơi không cần bảo mật cao.
+- Telnet hoạt động ở tầng ứng dụng, dựa trên TCP để duy trì kết nối ổn định, nhưng thiếu các biện pháp bảo vệ hiện đại.
+>Giao thức điều khiển từ xa qua text (port 23).
+
+## Cách Hoạt động
+- Client kết nối đến server trên cổng 23, thiết lập phiên TCP và bắt đầu trao đổi dữ liệu dưới dạng văn bản thuần mà không mã hóa, bao gồm cả lệnh và phản hồi.
+- Sử dụng NVT (Network Virtual Terminal) để chuẩn hóa định dạng dữ liệu giữa các hệ thống khác nhau, ví dụ như xử lý ký tự đặc biệt hoặc điều khiển dòng lệnh.
+- Xác thực đơn giản chỉ dựa trên username và password được truyền rõ ràng, không có cơ chế kiểm tra toàn vẹn, dẫn đến dễ bị chặn bắt toàn bộ phiên làm việc.
+- Kết nối có thể được duy trì lâu dài cho các lệnh liên tục, nhưng không hỗ trợ các tính năng nâng cao như tunneling hoặc chuyển file bảo mật.
+
+## Đặc điểm Nổi bật
+**Ưu điểm:** Thiết kế đơn giản giúp dễ triển khai và sử dụng trên các hệ thống cũ, không yêu cầu tài nguyên cao và tương thích rộng rãi với phần cứng legacy.
+
+**Nhược điểm:** Hoàn toàn thiếu bảo mật do truyền plain text, dễ bị tấn công sniffing để lấy mật khẩu hoặc dữ liệu; không phù hợp với mạng công khai và thường bị thay thế bởi SSH trong môi trường hiện đại.
+
+> **Bị thay thế hoàn toàn bởi SSH** vì lý do bảo mật.
 
 ---
 
 # SSH - Secure Shell Protocol
 **Khái niệm:**  
-Giao thức đăng nhập từ xa an toàn (port 22), thay thế Telnet.
+SSH, hay Secure Shell, là giao thức mạng được thiết kế để cung cấp truy cập từ xa an toàn đến các thiết bị qua mạng không đáng tin cậy.
 
-### 🔹 Cách hoạt động
-- Dữ liệu được **mã hóa** end-to-end.  
-- Xác thực bằng **mật khẩu** hoặc **khóa RSA**.  
-- Dùng để truy cập shell, copy file (SCP, SFTP), tunneling.
+- Nó cho phép người dùng mở shell bảo mật để thực thi lệnh, chuyển file một cách an toàn, hoặc thiết lập tunnel cho dữ liệu khác, thường được sử dụng trong quản trị hệ thống, lập trình từ xa hoặc kết nối server đám mây.
+- SSH hoạt động ở tầng ứng dụng, dựa trên TCP để đảm bảo kết nối ổn định và đáng tin cậy, đồng thời tích hợp các lớp bảo mật để bảo vệ toàn bộ phiên làm v
 
-### 🔹 Ưu / Nhược
-✅ Bảo mật cao.  
-❌ Cần cấu hình khóa nếu muốn tự động hóa.
+> Giao thức đăng nhập từ xa an toàn (port 22), thay thế Telnet.
+## Các Phiên bản Chính
+**SSH-1**
+Phiên bản ban đầu với hỗ trợ mã hóa cơ bản như RSA cho khóa công khai, nhưng tồn tại nhiều lỗ hổng như dễ bị tấn công man-in-the-middle hoặc session hijacking do thiếu kiểm tra toàn vẹn dữ liệu.
+Không khuyến nghị sử dụng vì các vấn đề bảo mật nghiêm trọng, dẫn đến rủi ro lộ mật khẩu hoặc dữ liệu nhạy cảm.
 
----
+**SSH-2**
+Cải thiện đáng kể với các thuật toán mã hóa mạnh mẽ hơn như AES, Blowfish hoặc ChaCha20, kết hợp với kiểm tra toàn vẹn qua HMAC để phát hiện thay đổi dữ liệu.
+Hỗ trợ thêm các tính năng như SFTP (Secure File Transfer Protocol) cho chuyển file an toàn, SCP (Secure Copy) và port forwarding để tunnel các kết nối khác qua SSH.
+## Cách hoạt động
+- Client khởi tạo kết nối đến server trên cổng 22, sau đó hai bên thương lượng các tham số bảo mật như thuật toán mã hóa và trao đổi khóa công khai để thiết lập kênh an toàn.
+- Quá trình xác thực có thể dùng public-key (khóa đôi không cần mật khẩu), password-based, hoặc đa yếu tố, với server kiểm tra danh tính client trước khi cho phép truy cập.
+- Cấu trúc bao gồm ba lớp: Transport Layer (xử lý mã hóa và toàn vẹn dữ liệu), User Authentication Layer (xác thực người dùng), và Connection Layer (quản lý các kênh như shell, forwarding hoặc subsystem như SFTP).
+- Toàn bộ dữ liệu được mã hóa end-to-end, ngăn chặn các cuộc tấn công như sniffing hoặc injection, và hỗ trợ nén dữ liệu để tối ưu băng thông trong kết nối chậm.
 
-# Telnet 
-**Khái niệm:**  
-Giao thức điều khiển từ xa qua text (port 23).
+### Đặc điểm Nổi bật
+**Ưu điểm:** Mức độ bảo mật cao với mã hóa mạnh và xác thực linh hoạt, dễ mở rộng trên các nền tảng (như OpenSSH cho Linux/Windows), và khả năng tunneling giúp vượt tường lửa hoặc bảo vệ các giao thức khác.
 
-### 🔹 Đặc điểm
-- Cho phép truy cập terminal của thiết bị mạng.  
-- Không mã hóa → dễ bị nghe lén.
+**Nhược điểm:** Thiết lập phức tạp hơn với quản lý khóa công khai, có thể gây overhead hiệu suất do mã hóa (dù có thể điều chỉnh mức độ), và yêu cầu cập nhật thường xuyên để vá lỗ hổng mới.
 
-### 🔹 Hiện nay
-→ **Bị thay thế hoàn toàn bởi SSH** vì lý do bảo mật.
+## So sánh Telnet và SSH
 
+**Bảo mật:** Telnet truyền dữ liệu không mã hóa, dễ nghe lén toàn bộ phiên; SSH mã hóa toàn diện để bảo vệ khỏi các mối đe dọa tương tự.
+**Xác thực:** Telnet chỉ dùng username/password cơ bản; SSH hỗ trợ key-based hoặc đa yếu tố để tăng cường an ninh.
+**Sử dụng:** Telnet phù hợp cho mạng nội bộ kín đáo hoặc thiết bị cũ; SSH là lựa chọn tiêu chuẩn cho truy cập từ xa an toàn, đặc biệt khi kết nối qua Internet.
+**Port và Hiệu suất:** Telnet dùng cổng 23 với tốc độ nhanh do không overhead; SSH dùng cổng 22 nhưng thêm lớp mã hóa có thể làm chậm kết nối yếu.
 ---
 
 # TCP - Transmission Control Protocol
 **Khái niệm:**  
-Giao thức hướng kết nối, đảm bảo **độ tin cậy và thứ tự dữ liệu**.
+TCP, viết tắt của Transmission Control Protocol, là một giao thức tầng vận chuyển (transport layer) trong mô hình TCP/IP, được thiết kế để cung cấp kết nối đáng tin cậy và có thứ tự giữa các ứng dụng trên mạng.
 
-### 🔹 Đặc điểm chính
-- Three-way handshake (SYN, SYN-ACK, ACK).  
-- Kiểm soát lỗi, kiểm soát luồng, retransmission.  
-- Dùng trong HTTP, SMTP, FTP, SSH...
+- Nó đảm bảo rằng dữ liệu được truyền một cách chính xác, không bị mất mát hoặc lặp lại, bằng cách xử lý lỗi, kiểm soát dòng chảy và quản lý tắc nghẽn, rất phù hợp cho các ứng dụng yêu cầu độ tin cậy cao như email, web browsing hoặc chuyển file.
+- TCP hoạt động trên nền IP, biến mạng không đáng tin cậy thành một kênh truyền ổn định, giúp các thiết bị trao đổi dữ liệu dưới dạng luồng byte liên tục mà không cần lo lắng về các vấn đề cơ bản của mạng.
 
-### 🔹 Ưu / Nhược
-✅ Đảm bảo dữ liệu đầy đủ.  
-❌ Chậm hơn UDP do overhead.
+## Cách Hoạt động
+- TCP bắt đầu bằng quá trình thiết lập kết nối qua 3-way handshake: Client gửi SYN, server trả SYN-ACK, client xác nhận ACK, đảm bảo cả hai bên đồng bộ sequence numbers để theo dõi dữ liệu.
+- Trong quá trình truyền, dữ liệu được chia thành segments với header chứa sequence number, acknowledgment number, và window size để kiểm soát dòng chảy (flow control), tránh overwhelm receiver.
+- Nếu gói tin mất, TCP sử dụng retransmission dựa trên timeout hoặc duplicate ACK, đồng thời điều chỉnh tốc độ qua congestion control algorithms như slow start và congestion avoidance để tránh tắc nghẽn mạng.
+- Kết thúc kết nối bằng 4-way handshake: Một bên gửi FIN, bên kia ACK và FIN, rồi ACK cuối cùng, đảm bảo tất cả dữ liệu được nhận trước khi đóng.
+## Đặc điểm Nổi bật
+- **Ưu điểm:** Đảm bảo độ tin cậy cao với error detection qua checksum, ordered delivery để dữ liệu đến đúng thứ tự, và full-duplex cho truyền hai chiều đồng thời, làm cho nó lý tưởng cho các ứng dụng không chấp nhận mất mát.
+- **Nhược điểm:** Overhead cao do handshake và ACK làm tăng độ trễ, không phù hợp với ứng dụng thời gian thực như video call; cần tài nguyên CPU để quản lý trạng thái kết nối, và dễ bị ảnh hưởng bởi mất gói tin trong mạng không ổn định.
 
 ---
 
 # UDP - User Datagram Protocol
 **Khái niệm:**  
-Giao thức **không hướng kết nối**, nhanh nhưng không đảm bảo độ tin cậy.
+UDP, viết tắt của User Datagram Protocol, là giao thức tầng vận chuyển đơn giản, không kết nối, tập trung vào việc truyền dữ liệu nhanh chóng mà không đảm bảo độ tin cậy.
 
-### 🔹 Đặc điểm chính
-- Không kiểm tra lỗi, không sắp thứ tự gói.  
-- Dùng trong streaming, VoIP, DNS, SNMP.
+- Nó được sử dụng cho các ứng dụng cần tốc độ cao và chấp nhận mất mát nhỏ, như streaming video, gaming online, DNS queries hoặc VoIP, nơi độ trễ thấp quan trọng hơn việc retransmit dữ liệu mất.
+- UDP hoạt động trên IP, gửi datagrams độc lập mà không thiết lập kết nối, giúp giảm overhead và phù hợp với multicast hoặc broadcast để phân phối dữ liệu đến nhiều receiver.
 
-### 🔹 Ưu / Nhược
-✅ Nhanh, nhẹ.  
-❌ Mất gói hoặc sai thứ tự có thể xảy ra.
+## Cách hoạt động 
+- UDP gửi dữ liệu dưới dạng datagrams độc lập: Sender thêm header với port để multiplex các ứng dụng, length để xác định kích thước, và checksum tùy chọn để phát hiện lỗi cơ bản.
+- Không có handshake hay acknowledgment: Dữ liệu được gửi ngay lập tức mà không chờ xác nhận, dẫn đến có thể mất, duplicate hoặc out-of-order delivery tùy thuộc vào mạng.
+- Receiver kiểm tra checksum để loại bỏ datagrams hỏng, nhưng không retransmit; ứng dụng tầng trên phải xử lý lỗi nếu cần, ví dụ qua cơ chế riêng như FEC (Forward Error Correction).
+- Hỗ trợ multicast bằng cách gửi đến địa chỉ nhóm, giúp hiệu quả cho phân phối dữ liệu rộng rãi mà không cần nhiều kết nối riêng lẻ.
 
+## Đặc điểm nổi bật
+- **Ưu điểm:** Overhead thấp với header chỉ 8 bytes, tốc độ cao do không quản lý trạng thái, và linh hoạt cho ứng dụng thời gian thực nơi retransmission có thể làm tệ hơn độ trễ.
+- **Nhược điểm:** Không đảm bảo delivery hoặc thứ tự, dễ mất dữ liệu trong mạng kém; ứng dụng phải tự implement reliability nếu cần, và checksum yếu có thể bỏ sót lỗi phức tạp.
+
+## So sánh TCP và UDP
+
+-**Độ tin cậy:** TCP đảm bảo delivery qua ACK và retransmission; UDP không, dẫn đến mất mát có thể xảy ra.
+-**Kết nối:** TCP connection-oriented với handshake; UDP connectionless, gửi ngay lập tức.
+-**Ứng dụng:** TCP cho dữ liệu quan trọng như HTTP/FTP; UDP cho tốc độ cao như DNS/Streaming.
+-**Overhead và Hiệu suất:** TCP có header lớn hơn (20+ bytes) và overhead cao; UDP nhẹ (8 bytes) nhưng yêu cầu ứng dụng xử lý lỗi.
 ---
 
 # ICMP - Internet Control Message Protocol
 **Khái niệm:**  
-Giao thức kiểm tra và báo lỗi mạng (Layer 3).
+ICMP, viết tắt của Internet Control Message Protocol, là giao thức tầng mạng (network layer) dùng để báo cáo lỗi và cung cấp thông tin vận hành trong mạng IP.
 
-### 🔹 Ứng dụng
-- `ping` → kiểm tra kết nối.  
-- `traceroute` → xác định đường đi.  
-- Báo lỗi như “host unreachable” hoặc “TTL expired”.
+- Nó giúp chẩn đoán vấn đề mạng như kết nối không đạt, tắc nghẽn hoặc route không tồn tại, thường được sử dụng bởi công cụ như ping để kiểm tra reachability và traceroute để theo dõi đường đi.
+- ICMP không truyền dữ liệu người dùng mà chỉ hỗ trợ quản lý mạng, cho phép các thiết bị như router gửi thông báo về vấn đề mà không làm gián đoạn luồng dữ liệu chính.
+>Giao thức kiểm tra và báo lỗi mạng (Layer 3).
 
-### 🔹 Ưu / Nhược
-✅ Cực nhẹ, hữu ích trong chẩn đoán mạng.  
-❌ Bị chặn trong nhiều firewall để tránh tấn công.
+## Cách hoạt động 
+- ICMP gửi messages encapsulated trong IP packets, với header chứa type (ví dụ: 0 cho echo reply, 3 cho destination unreachable), code (chi tiết lỗi), và checksum để xác thực.
+- Khi lỗi xảy ra, router hoặc host tạo message ICMP và gửi về nguồn, ví dụ: Nếu gói tin hết TTL, gửi time exceeded; nếu port không mở, gửi port unreachable.
+- Công cụ như ping gửi echo request và đo thời gian cho echo reply, trong khi traceroute tăng dần TTL để thu thập route từ các time exceeded messages.
+- Không sử dụng port như TCP/UDP mà dựa vào IP header, và có thể bị lọc bởi firewall để tránh lạm dụng như DDoS.
+
+## Đặc điểm Nổi bật
+- **Ưu điểm:** Thiết kế nhẹ giúp chẩn đoán nhanh mà không cần kết nối đầy đủ, hỗ trợ tự động hóa quản lý mạng và phát hiện vấn đề sớm để tối ưu hiệu suất.
+- **Nhược điểm:** Dễ bị khai thác cho tấn công như ping flood hoặc smurf attack; một số message có thể bị bỏ qua bởi thiết bị, và không mã hóa dẫn đến rủi ro giả mạo.
 
 ---
 
 # BGP - Border Gateway Protocol
 **Khái niệm:**  
-Giao thức định tuyến **liên miền (Exterior Gateway Protocol)** dùng trên Internet.
+BGP, viết tắt của Border Gateway Protocol, là giao thức định tuyến ngoại vi (exterior gateway protocol) dùng để trao đổi thông tin route giữa các autonomous systems (AS) trên Internet.
 
-### 🔹 Cách hoạt động
-- Trao đổi route giữa **AS (Autonomous Systems)**.  
-- Quyết định đường đi tối ưu giữa các ISP.  
-- Dựa trên chính sách hơn là tốc độ.
+- Nó đảm bảo dữ liệu được định tuyến hiệu quả qua các mạng độc lập, chọn đường đi tốt nhất dựa trên policy thay vì metrics đơn giản, rất quan trọng cho scalability của Internet toàn cầu.
+- BGP hoạt động ở tầng ứng dụng nhưng dựa trên TCP, giúp kết nối các ISP, data center và mạng lớn để duy trì bảng route động.
+> Giao thức định tuyến **liên miền (Exterior Gateway Protocol)** dùng trên Internet.
 
-### 🔹 Port
-TCP port **179**.
+## Cách hoạt động
+- BGP thiết lập kết nối với neighbors (peers) qua TCP port 179, sử dụng finite state machine để quản lý trạng thái từ idle đến established.
+- Router trao đổi route qua update messages chứa prefix, attributes như NEXT_HOP, ORIGIN và LOCAL_PREF, với path vector mechanism để theo dõi AS path và tránh loop.
+- Quyết định route dựa trên policy: Ưu tiên highest LOCAL_PREF, shortest AS_PATH, lowest MED, v.v., và quảng bá route tốt nhất đến peers.
+- Có hai loại: eBGP (external, giữa AS khác) với TTL=1 để hạn chế, và iBGP (internal, trong AS) yêu cầu full mesh hoặc route reflector để lan tỏa route.
 
-### 🔹 Ưu / Nhược
-✅ Cốt lõi của Internet toàn cầu.  
-❌ Cấu hình phức tạp, dễ gây sự cố nếu sai.
+## Đặc điểm Nổi bật
+- **Ưu điểm:** Linh hoạt với policy-based routing cho tùy chỉnh theo nhu cầu kinh doanh, scalable cho hàng triệu route trên Internet, và hỗ trợ convergence nhanh qua BFD (Bidirectional Forwarding Detection).
+- **Nhược điểm:** Phức tạp để cấu hình, dễ bị route leak hoặc hijacking nếu không bảo mật; convergence chậm trong trường hợp lớn, và yêu cầu tài nguyên cao cho bảng route đầy đủ.
 
 ---
