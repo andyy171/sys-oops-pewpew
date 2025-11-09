@@ -1,5 +1,5 @@
 # Overview 
-> Repo bao gồm các ghi chú về lý thuyết và thực hành cũng như kịch bản triển khai liên quan đến Ceph Storage .
+> Repo bao gồm các ghi chú về các chủ điểm kiến thức system .
 >
 
 # Kiến thức cơ bản 
