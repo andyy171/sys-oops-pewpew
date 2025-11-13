@@ -1,7 +1,50 @@
 # Mục lục
-
-
-
+- [Mục lục](#mục-lục)
+- [Tổng quan](#tổng-quan)
+- [Kiến trúc CRUSH](#kiến-trúc-crush)
+  - [Các thành phần chính](#các-thành-phần-chính)
+  - [Cơ chế hoạt động căn bản](#cơ-chế-hoạt-động-căn-bản)
+  - [Đặc tính Ánh xạ Xác định (Deterministic Mapping)](#đặc-tính-ánh-xạ-xác-định-deterministic-mapping)
+    - [Nguyên lý Ánh xạ Xác định](#nguyên-lý-ánh-xạ-xác-định)
+    - [Ý nghĩa Kiến trúc](#ý-nghĩa-kiến-trúc)
+    - [Tối ưu Hiệu suất mở rộng](#tối-ưu-hiệu-suất-mở-rộng)
+  - [CRUSH Lookup](#crush-lookup)
+    - [Quy trình thực tế trong Ceph](#quy-trình-thực-tế-trong-ceph)
+  - [CRUSH Hierarchy](#crush-hierarchy)
+    - [Khái niệm về Failure Zones](#khái-niệm-về-failure-zones)
+    - [Cấu trúc CRUSH Map](#cấu-trúc-crush-map)
+    - [Cách CRUSH sử dụng hierarchy](#cách-crush-sử-dụng-hierarchy)
+      - [Phân phối replica](#phân-phối-replica)
+      - [Lợi ích của cấu trúc hierarchy](#lợi-ích-của-cấu-trúc-hierarchy)
+      - [Cơ chế đảm bảo an toàn dữ liệu](#cơ-chế-đảm-bảo-an-toàn-dữ-liệu)
+  - [CRUSH Buckets](#crush-buckets)
+    - [Các Loại Bucket](#các-loại-bucket)
+  - [Weight Balancing](#weight-balancing)
+    - [Khái niệm về OSD Weight](#khái-niệm-về-osd-weight)
+    - [Cơ chế phân phối dữ liệu theo weight](#cơ-chế-phân-phối-dữ-liệu-theo-weight)
+    - [Tối ưu hóa khi thay đổi weight](#tối-ưu-hóa-khi-thay-đổi-weight)
+  - [CRUSH Rules \& Placement](#crush-rules--placement)
+    - [Replicated pools](#replicated-pools)
+    - [Erasure-coded pools](#erasure-coded-pools)
+- [Vận hành và tối ưu](#vận-hành-và-tối-ưu)
+  - [Cơ chế Recovery (Khôi phục)](#cơ-chế-recovery-khôi-phục)
+    - [Thời gian chờ và Phát hiện lỗi](#thời-gian-chờ-và-phát-hiện-lỗi)
+    - [Quá trình khôi phục](#quá-trình-khôi-phục)
+    - [Tối ưu hóa di chuyển dữ liệu](#tối-ưu-hóa-di-chuyển-dữ-liệu)
+  - [Cơ chế Rebalancing](#cơ-chế-rebalancing)
+    - [Điều kiện kích hoạt Rebalancing](#điều-kiện-kích-hoạt-rebalancing)
+    - [Quy trình Rebalancing](#quy-trình-rebalancing)
+    - [Ví dụ thực tế tính toán lượng dữ liệu di chuyển](#ví-dụ-thực-tế-tính-toán-lượng-dữ-liệu-di-chuyển)
+    - [Best Practices và Khuyến nghị](#best-practices-và-khuyến-nghị)
+  - [Cơ chế tái cấu trúc layout](#cơ-chế-tái-cấu-trúc-layout)
+    - [Nguyên lý Minimal Data Movement](#nguyên-lý-minimal-data-movement)
+    - [Quy trình tái ánh xạ](#quy-trình-tái-ánh-xạ)
+    - [Monitoring và Quản lý](#monitoring-và-quản-lý)
+  - [Failure domain configuration](#failure-domain-configuration)
+- [Các Tính Năng Nâng Cao](#các-tính-năng-nâng-cao)
+  - [Device Classes](#device-classes)
+  - [Tunables](#tunables)
+- [Các Thao tác với CRUSH](#các-thao-tác-với-crush)
 
 ---
 
@@ -100,7 +143,12 @@ root → datacenter → row → rack → host → osd
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/crushmap-1.png)
 
 - Mỗi tầng là một **bucket**, có thể chứa bucket con hoặc thiết bị.
+
+[Chi tiết hơn về bucket level](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/10-Failure-Domain-and-Tiers.md#failure-domain-phân-vùng-lỗi)
+
 - CRUSH sử dụng topology này để phân phối dữ liệu qua các failure zones, đảm bảo an toàn và sẵn sàng.
+
+
 
 ### Cách CRUSH sử dụng hierarchy
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/hierarchy-replica.png)
@@ -372,17 +420,15 @@ ceph pg stat
 ceph -s
 ```
 
+
+## Failure domain configuration
+
+
+
+
 # Các Tính Năng Nâng Cao 
 ## Device Classes
-Phân loại thiết bị theo tốc độ (SSD, HDD, NVMe, slow, fast).
-
-- CRUSH rule có thể target device class cụ thể, ví dụ:
-```
-step take default class ssd
-step chooseleaf firstn 3 type host
-```
-Điều này giúp pool phân biệt tier dữ liệu mà không cần map thủ công.
-
+[**==> Device Class**](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/10-Failure-Domain-and-Tiers.md#device-class)
 ## Tunables
 CRUSH có sẵn các profile như legacy, hammer, optimal, straw2, ... có thể dùng để đảm bảo tính tương thích khi nâng cấp cluster.
 
