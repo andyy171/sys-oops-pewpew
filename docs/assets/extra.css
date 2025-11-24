@@ -1,0 +1,13 @@
+.md-nav__item > .md-nav__link {
+    font-size: 1.1em; 
+    font-weight: 600; 
+}
+
+
+.md-nav__list .md-nav__link {
+    font-size: 1em; 
+}
+
+.md-nav__item {
+    margin-bottom: 0.2rem; 
+}

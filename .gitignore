@@ -7,11 +7,13 @@ ehthumbs.db
 *.swp
 *~
 
+
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 env/
+site/
 ENV/
 .env
 .env.*
@@ -36,7 +38,7 @@ node_modules/
 *.log
 logs/
 tmp/
-
+.cache/
 results/
 labs/results/
 assets/results/
