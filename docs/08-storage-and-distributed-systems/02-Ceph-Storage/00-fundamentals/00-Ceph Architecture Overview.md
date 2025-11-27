@@ -1,20 +1,10 @@
-# Mục lục
-- [Mục lục](#mục-lục)
-- [Tổng quan kiến trúc Ceph](#tổng-quan-kiến-trúc-ceph)
-  - [Tại sao lại cần Ceph ?](#tại-sao-lại-cần-ceph-)
-- [High-level architecture diagram](#high-level-architecture-diagram)
-- [Ceph Write Data Flow: From Client to OSD](#ceph-write-data-flow-from-client-to-osd)
-- [Cluster-aware architecture (không có central gateway)](#cluster-aware-architecture-không-có-central-gateway)
-  - [Kiến trúc đa lớp của Ceph](#kiến-trúc-đa-lớp-của-ceph)
-  - [Data workflow đi qua các lớp](#data-workflow-đi-qua-các-lớp)
-- [Scalability principles](#scalability-principles)
+# Tổng quan kiến trúc
 
-
-# Tổng quan kiến trúc Ceph 
+## Tổng quan kiến trúc Ceph 
 > Ceph là hệ thống lưu trữ phân tán, mã nguồn mở, được thiết kế để cung cấp giải pháp lưu trữ thống nhất (Object, Block, File) với khả năng mở rộng, độ tin cậy cao và chi phí tối ưu. Ceph phù hợp cho các môi trường cần lưu trữ dữ liệu lớn, yêu cầu tính sẵn sàng cao và không phụ thuộc vào phần cứng cụ thể.
 >
 
-## Tại sao lại cần Ceph ? 
+#### Tại sao lại cần Ceph ? 
 Các hệ thống SAN (Storage Area Network) và NAS (Network Attached Storage) truyền thống thường gặp các hạn chế đáng kể. Chúng đắt đỏ, phụ thuộc vào nhà cung cấp, khó mở rộng theo kiểu scale-up và có nguy cơ điểm lỗi duy nhất (SPOF). Việc mở rộng dung lượng hoặc hiệu suất thường đi kèm chi phí cao, gây khó khăn cho doanh nghiệp.
 
 ⇒ Ceph khắc phục những hạn chế này với nhiều ưu điểm vượt trội. 
@@ -48,11 +38,11 @@ Ceph bao gồm nhiều thành phần phối hợp chặt chẽ để cung cấp 
 - **RGW (RADOS Gateway)** cung cấp giao diện Object Storage (S3/Swift) tương thích Amazon S3 và OpenStack Swift, cho phép ứng dụng truy cập dữ liệu qua HTTP API.
 - **MDS (Metadata Server)** quản lý metadata cho CephFS (Ceph File System), hỗ trợ truy cập dữ liệu dạng tệp, điều phối quyền truy cập, và tăng hiệu suất thao tác file..
 
-# High-level architecture diagram
+## High-level architecture diagram
 
 
 
-# Ceph Write Data Flow: From Client to OSD
+## Ceph Write Data Flow: From Client to OSD
 Trong Ceph, **dữ liệu được lưu trữ và truy cập theo một quy trình rõ ràng** từ **Client** đến **OSD (Object Storage Daemon)**. Dữ liệu được tổ chức dưới dạng **đối tượng (object)** và được phân phối trong các **pool**.
 Mỗi **pool** bao gồm nhiều **Placement Group (PG)** — là các nhóm logic giúp Ceph phân tán và cân bằng dữ liệu. **Mỗi đối tượng chỉ thuộc về một PG duy nhất**, và **mỗi PG** lại được ánh xạ đến **một tập hợp OSD**, nơi dữ liệu thực tế được lưu trữ.
 Cơ chế này đảm bảo **phân tán dữ liệu, cân bằng tải, và khả năng chịu lỗi cao** trong toàn cụm Ceph.
@@ -82,7 +72,7 @@ Cơ chế này đảm bảo **phân tán dữ liệu, cân bằng tải, và kh�
 - Với 3 MON, nếu 1 MON thất bại, cụm vẫn hoạt động vì còn 2/3 MON.
 
 
-# Ceph Read Data Flow 
+## Ceph Read Data Flow 
 Quy trình đọc dữ liệu trong Ceph cũng tuân theo logic phân tán, cho phép máy khách tự xác định vị trí dữ liệu và đọc trực tiếp từ OSD chính:
 
 - **Bước 1 Xác thực (Authentication):** Giống như quy trình ghi, máy khách đầu tiên xác thực với Monitor (MON) để nhận và cập nhật các bản đồ cụm (Cluster Maps) mới nhất (như Monitor Map, OSD Map, CRUSH Map).
@@ -92,7 +82,7 @@ Quy trình đọc dữ liệu trong Ceph cũng tuân theo logic phân tán, cho 
 - **Bước 3 Đọc từ OSD Chính (Read from Primary):**Theo mặc định, máy khách kết nối trực tiếp với Primary OSD (OSD chính) được tính toán. Việc chỉ đọc từ OSD chính giúp đảm bảo máy khách luôn nhận được phiên bản dữ liệu nhất quán (consistent) và mới nhất.
 
 - **Bước 4 Truyền tải Trực tiếp (Direct Transfer):** Dữ liệu đối tượng được truyền trực tiếp từ Primary OSD về máy khách. Không cần bất kỳ bước sao chép nội bộ nào giữa các OSD khác.
-## So sánh Ceph Write Flow và Ceph Read Flow 
+#### So sánh Ceph Write Flow và Ceph Read Flow 
 | Tính năng | ✍️ Luồng Ghi (Write Flow) | 📖 Luồng Đọc (Read Flow) |
 | --- | --- | --- |
 | **Mục đích** | Đảm bảo **tính bền vững** và **nhất quán** của dữ liệu. | Tối ưu hóa **tốc độ truy xuất** dữ liệu. |
@@ -101,11 +91,11 @@ Quy trình đọc dữ liệu trong Ceph cũng tuân theo logic phân tán, cho 
 | **Độ trễ** | Bị giới hạn bởi **bản sao chậm nhất** (`slowest replica`). | Chỉ bị giới hạn bởi tốc độ của **Primary OSD**. |
 | **Hiệu suất** | **Chậm hơn** do yêu cầu đồng bộ hóa. | **Nhanh hơn** (thường gấp 2-3 lần) do truyền tải trực tiếp. |
 
-# Cluster-aware architecture (không có central gateway)
+## Cluster-aware architecture (không có central gateway)
 
 
 
-## Kiến trúc đa lớp của Ceph 
+#### Kiến trúc đa lớp của Ceph 
 Kiến trúc đa lớp của Ceph được thiết kế để tách biệt các dịch vụ người dùng khỏi cơ chế quản lý dữ liệu và lưu trữ vật lý, đảm bảo tính linh hoạt, mở rộng, và độ tin cậy. Kiến trúc này bao gồm ba tầng chính:
 
 - **Lớp Dịch vụ Ceph**: Cung cấp giao diện lưu trữ (object, block, file) cho ứng dụng.
@@ -114,7 +104,7 @@ Kiến trúc đa lớp của Ceph được thiết kế để tách biệt các 
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/ceph-multi-layer-structure.png)
 
-## Data workflow đi qua các lớp
+#### Data workflow đi qua các lớp
 
 Dữ liệu từ các dịch vụ này được chuyển xuống lõi RADOS để quản lý và phân phối sau đó RADOS sử dụng thuật toán CRUSH để ánh xạ dữ liệu từ object tới các nhóm vị trí ( PGs) sau đó được phân phối tới các OSD (Object Storage Daemon) để lưu trữ  . Blue Store được sử dụng như hệ thống lưu trữ mặc định, đảm nhận việc quản lý và ghi dữ liệu xuống đĩa cứng một cách hiệu quả tại mỗi OSD.
 
@@ -125,7 +115,7 @@ Dữ liệu từ các dịch vụ này được chuyển xuống lõi RADOS đ�
 >
 
 
-# Scalability principles
+## Scalability principles
 
 
 [**==> Ceph RADOS**](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/01-RADOS.md)

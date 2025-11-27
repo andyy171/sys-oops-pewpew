@@ -1,4 +1,4 @@
-# Tổng quan 
+
 - Pool là phân vùng logic để lưu trữ objects trong Ceph cluster. Bạn có thể hiểu Pool giống như một "container" hay "bucket" lớn chứa dữ liệu.
 
 - **Tại sao cần Pools?**
@@ -7,7 +7,7 @@
     + **Bảo mật:** Có thể set quyền truy cập khác nhau cho từng pool
     + **Linh hoạt:** Mỗi pool có thể dùng storage strategy khác nhau
 
-# Cách pool hoạt động 
+## Cách pool hoạt động 
 ```
                 Client Application
                        ↓
@@ -23,10 +23,10 @@
     + Pool phân phối objects qua các PGs
     + PGs được map tới các OSDs theo CRUSH algorithm
 
-# Các loại pools 
+## Các loại pools 
 Có 2 loại pool chính trong Ceph, mỗi loại phù hợp cho use case khác nhau.
 
-## Replicated Pools
+#### Replicated Pools
 **Cách hoạt động:** Tạo nhiều bản copy giống hệt nhau của mỗi object.
 
 **Ví dụ minh họa:**
@@ -59,14 +59,14 @@ Size = 3 (3 replicas)
 
 **Ví dụ thực tế:**
 ```bash
-# Tạo replicated pool với 3 copies
+## Tạo replicated pool với 3 copies
 ceph osd pool create vm-images 128 128 replicated
 ceph osd pool set vm-images size 3
 ceph osd pool set vm-images min_size 2
 ```
 
 
-## Erasure-coded Pools
+#### Erasure-coded Pools
 **Cách hoạt động:** Chia data thành chunks (k data + m coding), giống RAID 5/6.
 
 **Ví dụ minh họa:**
@@ -110,7 +110,7 @@ Các profile phổ biến:
 ```
 
 > Erasure-coded pools không hỗ trợ omap operations, vì vậy không thể dùng cho metadata pools của RGW hoặc RBD. Chỉ nên dùng cho data pools.
-# Pool creation & configuration
+## Pool creation & configuration
 - Tạo Replicated Pool
     + Syntax cơ bản:
 ```bash
@@ -118,27 +118,27 @@ ceph osd pool create <pool-name> <pg_num> [pgp_num] [replicated]
 ```
 **Ví dụ thực tế:**
 ```bash
-# Tạo pool cho VM images
+## Tạo pool cho VM images
 ceph osd pool create vm-images 128 128 replicated
 
-# Set replication size
+## Set replication size
 ceph osd pool set vm-images size 3
 ceph osd pool set vm-images min_size 2
 
-# Enable application tag
+## Enable application tag
 ceph osd pool application enable vm-images rbd
 
-# Initialize pool cho RBD
+## Initialize pool cho RBD
 rbd pool init vm-images
 ```
 - Tạo Erasure-coded Pool
 
 **Bước 1: Tạo erasure profile (nếu chưa có)**
 ```bash
-# Xem profiles hiện có
+## Xem profiles hiện có
 ceph osd erasure-code-profile ls
 
-# Tạo profile mới
+## Tạo profile mới
 ceph osd erasure-code-profile set my-ec-profile \
     k=4 \
     m=2 \
@@ -149,24 +149,24 @@ ceph osd erasure-code-profile set my-ec-profile \
 
 **Bước 2: Tạo pool với profile**
 ```bash
-# Tạo EC pool
+## Tạo EC pool
 ceph osd pool create backup-pool 128 128 erasure my-ec-profile
 
-# Enable application
+## Enable application
 ceph osd pool application enable backup-pool rgw
 ```
 
 **Bước 3: Verify**
 ```bash
-# Kiểm tra pool đã tạo
+## Kiểm tra pool đã tạo
 ceph osd pool ls detail | grep backup-pool
 
-# Kiểm tra profile
+## Kiểm tra profile
 ceph osd erasure-code-profile get my-ec-profile
 ```
 
 
-# Pool-level settings (size, min_size, pg_num)
+## Pool-level settings (size, min_size, pg_num)
 ```
 size - Số lượng replicas
 ```
@@ -188,7 +188,7 @@ ceph osd pool set vm-images size 3
 # Verify
 ceph osd pool ls detail | grep vm-images
 ```
-# Pool quotas
+## Pool quotas
 - Quota giúp giới hạn dung lượng hoặc số objects mà một pool có thể chứa, tránh pool nào đó "ăn hết" storage.
 - Hai loại quota
 
@@ -199,7 +199,7 @@ ceph osd pool ls detail | grep vm-images
 ```bash
 ceph osd pool set-quota <pool-name> [max_objects <obj-count>] [max_bytes <bytes>]
 
-# Ví dụ 
+## Ví dụ 
 # Giới hạn pool chỉ được dùng 1TB
 ceph osd pool set-quota vm-images max_bytes 1099511627776
 
@@ -252,7 +252,7 @@ ceph osd pool set-quota vm-images max_objects 0
 >    + Với replication size=3, 1GB data sẽ tính là 3GB quota
 
 
-## Quota usecase 
+### Quota usecase 
 1. Multi-tenant environments: Giới hạn mỗi tenant
 
 ```bash   
@@ -294,7 +294,7 @@ if (( $(echo "$USAGE > $THRESHOLD" | bc -l) )); then
     # Send alert
 fi
 ```
-# Application tags
+## Application tags
 - Application tag là label để đánh dấu pool được dùng cho service nào (CephFS, RBD, RGW). Từ Ceph Luminous trở đi, mỗi pool bắt buộc phải có application tag trước khi sử dụng.
 
 - Tại sao cần application tags?
@@ -304,23 +304,23 @@ fi
     + Automation: Tự động áp dụng settings phù hợp
     + Monitoring: Dễ dàng track pool theo application
 
-## Enable application tag
+### Enable application tag
 ```bash
 ceph osd pool application enable <pool-name> <app-name>
 
-#Ví dụ thực tế:
-# RBD pool
+##Ví dụ thực tế:
+## RBD pool
 ceph osd pool application enable vm-images rbd
 
-# CephFS pools
+## CephFS pools
 ceph osd pool application enable cephfs_data cephfs
 ceph osd pool application enable cephfs_metadata cephfs
 
-# RGW pools
+## RGW pools
 ceph osd pool application enable .rgw.root rgw
 ceph osd pool application enable default.rgw.buckets.data rgw
 ```
-## Kiểm tra application tags
+### Kiểm tra application tags
 ```bash
 # List all pools with their applications
 ceph osd pool ls detail | grep application
@@ -334,7 +334,7 @@ ceph osd pool application get vm-images
 # }
 ```
 
-## Health warning nếu thiếu tag
+### Health warning nếu thiếu tag
 Nếu pool chưa có application tag, cluster sẽ hiện HEALTH_WARN:
 ```bash
 $ ceph health
@@ -348,7 +348,7 @@ POOL_APP_NOT_ENABLED application not enabled on 1 pool(s)
     where <app-name> is 'cephfs', 'rbd', 'rgw', or freeform for custom applications.
 ```
 
-## Fix warning
+### Fix warning
 ```bash
 # Enable application tag
 ceph osd pool application enable my-pool rbd
@@ -359,7 +359,7 @@ ceph health
 ```
 
 
-## Custom application names
+### Custom application names
 Bạn có thể dùng custom name cho applications khác:
 ```bash
 # Application tự định nghĩa
@@ -368,7 +368,7 @@ ceph osd pool application enable log-pool logging
 ceph osd pool application enable metrics-pool metrics
 ```
 
-## Application metadata (Advanced)
+### Application metadata (Advanced)
 Có thể set metadata cho application:
 ```bash
 # Set metadata key-value
@@ -388,7 +388,7 @@ ceph osd pool application get vm-images rbd
 # }
 ```
 
-### Disable application
+#### Disable application
 ```bash
 # Remove application tag (cẩn thận!)
 ceph osd pool application disable <pool> <app> --yes-i-really-mean-it
@@ -397,7 +397,7 @@ ceph osd pool application disable <pool> <app> --yes-i-really-mean-it
 ceph osd pool application disable old-pool rbd --yes-i-really-mean-it
 ```
 
-# Best practices
+## Best practices
 
 1. Luôn enable tag ngay sau khi tạo pool:
 

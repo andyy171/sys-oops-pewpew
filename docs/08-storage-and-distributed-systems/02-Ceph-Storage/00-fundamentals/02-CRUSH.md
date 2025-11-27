@@ -1,54 +1,7 @@
-# Mục lục
-- [Mục lục](#mục-lục)
-- [Tổng quan](#tổng-quan)
-- [Kiến trúc CRUSH](#kiến-trúc-crush)
-  - [Các thành phần chính](#các-thành-phần-chính)
-  - [Cơ chế hoạt động căn bản](#cơ-chế-hoạt-động-căn-bản)
-  - [Đặc tính Ánh xạ Xác định (Deterministic Mapping)](#đặc-tính-ánh-xạ-xác-định-deterministic-mapping)
-    - [Nguyên lý Ánh xạ Xác định](#nguyên-lý-ánh-xạ-xác-định)
-    - [Ý nghĩa Kiến trúc](#ý-nghĩa-kiến-trúc)
-    - [Tối ưu Hiệu suất mở rộng](#tối-ưu-hiệu-suất-mở-rộng)
-  - [CRUSH Lookup](#crush-lookup)
-    - [Quy trình thực tế trong Ceph](#quy-trình-thực-tế-trong-ceph)
-  - [CRUSH Hierarchy](#crush-hierarchy)
-    - [Khái niệm về Failure Zones](#khái-niệm-về-failure-zones)
-    - [Cấu trúc CRUSH Map](#cấu-trúc-crush-map)
-    - [Cách CRUSH sử dụng hierarchy](#cách-crush-sử-dụng-hierarchy)
-      - [Phân phối replica](#phân-phối-replica)
-      - [Lợi ích của cấu trúc hierarchy](#lợi-ích-của-cấu-trúc-hierarchy)
-      - [Cơ chế đảm bảo an toàn dữ liệu](#cơ-chế-đảm-bảo-an-toàn-dữ-liệu)
-  - [CRUSH Buckets](#crush-buckets)
-    - [Các Loại Bucket](#các-loại-bucket)
-  - [Weight Balancing](#weight-balancing)
-    - [Khái niệm về OSD Weight](#khái-niệm-về-osd-weight)
-    - [Cơ chế phân phối dữ liệu theo weight](#cơ-chế-phân-phối-dữ-liệu-theo-weight)
-    - [Tối ưu hóa khi thay đổi weight](#tối-ưu-hóa-khi-thay-đổi-weight)
-  - [CRUSH Rules \& Placement](#crush-rules--placement)
-    - [Replicated pools](#replicated-pools)
-    - [Erasure-coded pools](#erasure-coded-pools)
-- [Vận hành và tối ưu](#vận-hành-và-tối-ưu)
-  - [Cơ chế Recovery (Khôi phục)](#cơ-chế-recovery-khôi-phục)
-    - [Thời gian chờ và Phát hiện lỗi](#thời-gian-chờ-và-phát-hiện-lỗi)
-    - [Quá trình khôi phục](#quá-trình-khôi-phục)
-    - [Tối ưu hóa di chuyển dữ liệu](#tối-ưu-hóa-di-chuyển-dữ-liệu)
-  - [Cơ chế Rebalancing](#cơ-chế-rebalancing)
-    - [Điều kiện kích hoạt Rebalancing](#điều-kiện-kích-hoạt-rebalancing)
-    - [Quy trình Rebalancing](#quy-trình-rebalancing)
-    - [Ví dụ thực tế tính toán lượng dữ liệu di chuyển](#ví-dụ-thực-tế-tính-toán-lượng-dữ-liệu-di-chuyển)
-    - [Best Practices và Khuyến nghị](#best-practices-và-khuyến-nghị)
-  - [Cơ chế tái cấu trúc layout](#cơ-chế-tái-cấu-trúc-layout)
-    - [Nguyên lý Minimal Data Movement](#nguyên-lý-minimal-data-movement)
-    - [Quy trình tái ánh xạ](#quy-trình-tái-ánh-xạ)
-    - [Monitoring và Quản lý](#monitoring-và-quản-lý)
-  - [Failure domain configuration](#failure-domain-configuration)
-- [Các Tính Năng Nâng Cao](#các-tính-năng-nâng-cao)
-  - [Device Classes](#device-classes)
-  - [Tunables](#tunables)
-- [Các Thao tác với CRUSH](#các-thao-tác-với-crush)
-
+# CRUSH 
 ---
 
-# Tổng quan 
+## Tổng quan 
 - CRUSH là trái tim của Ceph — một **thuật toán ánh xạ dữ liệu phi tập trung**, được đề xuất trong paper “CRUSH: Controlled, Scalable, Decentralized Placement of Replicated Data” (Sage Weil, SC’06).
 
 Nó xác định vị trí lưu trữ dữ liệu mà **không cần bảng metadata trung tâm**, giúp Ceph scale tới hàng nghìn node.
@@ -69,17 +22,17 @@ Nó xác định vị trí lưu trữ dữ liệu mà **không cần bảng meta
 
 ---
 
-# Kiến trúc CRUSH
-## Các thành phần chính
+## Kiến trúc CRUSH
+### Các thành phần chính
 - CRUSH hoạt động dựa trên 2 khối:
     + **CRUSH Algorithm** – hàm ánh xạ xác định vị trí lưu object.
     + **CRUSH Map** – cấu trúc phân cấp mô tả hạ tầng vật lý (root, datacenter, rack, host, osd) và chính sách replication.
 
-## Cơ chế hoạt động căn bản 
+### Cơ chế hoạt động căn bản 
 Sử dụng hàm hash để ánh xạ dữ liệu vào OSD dựa trên cấu trúc cluster (rack, host). Hỗ trợ replication hoặc erasure coding. Khi thêm/xóa node, CRUSH tự cân bằng dữ liệu.
 
-## Đặc tính Ánh xạ Xác định (Deterministic Mapping)
-### Nguyên lý Ánh xạ Xác định
+### Đặc tính Ánh xạ Xác định (Deterministic Mapping)
+#### Nguyên lý Ánh xạ Xác định
 Ánh xạ xác định là thuộc tính đảm bảo rằng với một tập hợp đầu vào cố định, thuật toán CRUSH sẽ luôn sinh ra cùng một kết quả đầu ra. Cụ thể, khi biết:
 - Object ID (hoặc Placement Group ID)
 - CRUSH Map (mô tả topology cluster và các rule)
@@ -89,14 +42,14 @@ bất kỳ client hoặc daemon nào trong hệ thống cũng sẽ tính toán r
 
 > Tính chất này được triển khai thông qua một hàm băm (hash function) xác định trong thuật toán CRUSH. Hàm này xử lý các đầu vào nêu trên để tạo ra một chuỗi các lựa chọn OSD một cách nhất quán và có thể dự đoán được.
 
-### Ý nghĩa Kiến trúc
+#### Ý nghĩa Kiến trúc
 Đặc tính này là **nền tảng cho kiến trúc phi tập trung (decentralized) của Ceph**:
 
 - **Không cần Tra cứu Metadata Trung tâm:** Client có thể xác định chính xác vị trí dữ liệu mà không cần liên hệ với một dịch vụ metadata tập trung. Điều này loại bỏ điểm tắc nghẽn (bottleneck) và điểm lỗi đơn (single point of failure).
 
 - **Nhất quán Toàn cục:** Tất cả các thành phần trong cluster (Client, OSD, Monitor) đều có khả năng độc lập tính toán và đạt được kết quả ánh xạ giống hệt nhau, đảm bảo tính nhất quán của dữ liệu.
 
-### Tối ưu Hiệu suất mở rộng
+#### Tối ưu Hiệu suất mở rộng
 Ánh xạ xác định trực tiếp dẫn đến hiệu quả trong việc quản lý dữ liệu khi cluster thay đổi:
 
 - **Di chuyển Dữ liệu Tối thiểu (Minimal Remapping):** Khi cluster được mở rộng (thêm OSD) hoặc thu hẹp (xóa OSD), CRUSH Map thay đổi. Khi đó, thuật toán được thiết kế để chỉ những dữ liệu được ánh xạ tới các OSD bị ảnh hưởng trực tiếp bởi sự thay đổi (ví dụ: OSD bị xóa hoặc vùng dữ liệu được phân bổ lại cho OSD mới) mới cần di chuyển.
@@ -105,10 +58,10 @@ bất kỳ client hoặc daemon nào trong hệ thống cũng sẽ tính toán r
 
 > Tính chất deterministic mapping, kết hợp với cấu trúc hierarchy và các bucket algorithm (như Straw2), cho phép CRUSH đạt được sự cân bằng giữa tính ngẫu nhiên để phân phối đều (load balancing) và tính xác định để giảm thiểu di chuyển dữ liệu, từ đó tạo nên một hệ thống lưu trữ phân tán có khả năng mở rộng cao và hiệu quả.
 
-## CRUSH Lookup
+### CRUSH Lookup
 CRUSH lookup là quá trình tính toán ánh xạ giữa object (hoặc PG) và danh sách OSD.  Điểm quan trọng là **tất cả client, OSD, MON đều có thể tự tính được cùng một kết quả, miễn cùng CRUSH map.**
 
-### Quy trình thực tế trong Ceph
+#### Quy trình thực tế trong Ceph
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/ceph-workflow.png)
 
 1. Client nhận cluster map (từ MON).
@@ -129,12 +82,12 @@ CRUSH lookup là quá trình tính toán ánh xạ giữa object (hoặc PG) và
 - Với các hoạt động tại Ceph cluster, client tương tác với Ceph monitor nhận lại cluster map. Cluster map giúp client biết trạng thái cấu hình Ceph cluster. Data được chuyển thành object với obj và pool name/IDs. Obj sau đối hashed với số vị trí group để sinh ra vị trí group cuối cùng mà không yêu cầu Ceph pool.
 - Tính toán ví trị group sẽ thông qua CRUSH lookup để quyết định vị trí primary OSD lưu và lấy lại. Sau tính toán, chiết xuất OSD ID, client liên hệ với OSD trực tiếp, lưu data. Tất các tính toán thực hiện bởi client, do đó nó không ảnh hưởng tới hiệu năng cluster. Khi data ghi tới primary OSD, node tương tự thực hiện hoạt động CRUSH lookup và tính toán vị trí secondary placement groups (vị trí phụ thứ yếu) và OSD, vì thế data được nhân rộng khắp Cluster cho tính HA.
 
-## CRUSH Hierarchy
-### Khái niệm về Failure Zones
+### CRUSH Hierarchy
+#### Khái niệm về Failure Zones
 - CRUSH có khả năng nhận thức hạ tầng, hoàn toàn do user cấu hình. Nó duy trì nested hierarchy (phân cấp lồng nhau) cho tất cả thành phần của hạ tầng.
 Các thành phần được biết tới = failure zones hay CRUSH buckets.
 
-### Cấu trúc CRUSH Map
+#### Cấu trúc CRUSH Map
 CRUSH Map chứa list các bucket có sẵn tập hợp các thiết bị trong các vị trí vật lý. Đồng thời chứa list rule cho phép CRUSH tính toán nhân bản data trên các Ceph pool khác nhau.
 - Cấu trúc CRUSH Map gồm các tầng:
 ```
@@ -149,26 +102,22 @@ root → datacenter → row → rack → host → osd
 - CRUSH sử dụng topology này để phân phối dữ liệu qua các failure zones, đảm bảo an toàn và sẵn sàng.
 
 
-
-### Cách CRUSH sử dụng hierarchy
-![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/hierarchy-replica.png)
-
-#### Phân phối replica
+##### Phân phối replica
 - Khi nhân bản dữ liệu, CRUSH chọn replica ở các bucket khác nhau (ví dụ, 3 host khác rack).
 - Nếu một node/rack bị lỗi, các replica còn lại vẫn khả dụng.
 
-#### Lợi ích của cấu trúc hierarchy
+##### Lợi ích của cấu trúc hierarchy
 Cấu trúc hierarchy giúp CRUSH:
 - Đảm bảo tính High Availability (HA).
 - Giữ phân phối công bằng dựa trên weight.
 - Cho phép tận dụng commodity hardware mà vẫn duy trì độ tin cậy cao.
 
-#### Cơ chế đảm bảo an toàn dữ liệu
+##### Cơ chế đảm bảo an toàn dữ liệu
 - Dựa trên hạ tầng, CRUSH truyền data, nhân bản data trên khắp failure zones khiến data an toàn, có sẵn kể cả khi 1 số thành phần lỗi.
 => Đây là cách CRUSH loại bỏ các thành phần có khả năng lỗi trên hạ tầng lưu trữ, đồng thời nó sử dụng các thiết bị thông thường mà vẫn đảm bảo tính HA (ko phải thiết bị chuyên dụng).
 
 
-## CRUSH Buckets
+### CRUSH Buckets
 CRUSH bucket là các container logic chứa các thiết bị (OSD) hoặc bucket con, sử dụng các thuật toán khác nhau để lựa chọn item khi ánh xạ dữ liệu. Việc lựa chọn loại bucket phù hợp ảnh hưởng trực tiếp đến:
 - Hiệu năng ánh xạ dữ liệu
 
@@ -176,7 +125,7 @@ CRUSH bucket là các container logic chứa các thiết bị (OSD) hoặc buck
 
 - Khả năng cân bằng tải
 
-### Các Loại Bucket 
+#### Các Loại Bucket 
 - Uniform bucket: 
     + Sử dụng hash trực tiếp, giả định tất cả items có cùng weight
     + Độ phức tạp: O(1) nên tốc độ cực nhanh => Tốc độ ánh xạ nhanh nhất
@@ -193,7 +142,7 @@ CRUSH bucket là các container logic chứa các thiết bị (OSD) hoặc buck
     + Remap trung bình khi có thay đổi 
     + Sử dụng cho cluster lớn cần cân bằng giữa performance và maintenance
 
-- Straw bucket: 
+- — bucket: 
     + Mỗi item "rút thăm" với độ dài straw tỷ lệ với weight
     + Độ phức tạp: O(n) - nhưng thực tế nhanh hơn List bucket =>  Đảm bảo tính công bằng (fairness) và minimal remap
     + Có bias nhất định khi weight thay đổi
@@ -224,22 +173,22 @@ CRUSH bucket là các container logic chứa các thiết bị (OSD) hoặc buck
 
 - Legacy migration: Chuyển đổi dần từ List/Tree sang Straw2 để tận dụng minimal remap
 
-## Weight Balancing
-### Khái niệm về OSD Weight
+### Weight Balancing
+#### Khái niệm về OSD Weight
 Mỗi OSD có trọng số (weight) phản ánh khả năng lưu trữ hoặc hiệu năng.
 => Để làm được điều đó, CRUSH cấp phát weights trên mỗi OSD. Cân năng càng cao trên OSD thì khả năng lưu trữ của chính OSD càng cao.
 
-### Cơ chế phân phối dữ liệu theo weight
+#### Cơ chế phân phối dữ liệu theo weight
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/weight-balancing.png)
 - CRUSH ghi nhiều dữ liệu hơn vào OSD có weight cao hơn, từ đó CRUSH ghi nhiều data tới những OSD này, duy trì tính cân bằng trên các thiết bị.
 - CRUSH ghi data công bằng trên khắp cluster disk, tăng hiệu năng, tính bảo đảm, đưa tất cả disk vào cluster.
 - Nó chắc rằng tất cả cluster disk được sử dụng bằng nhau kể cả khả năng lưu trữ khác nhau.
 
-### Tối ưu hóa khi thay đổi weight
+#### Tối ưu hóa khi thay đổi weight
 Khi weight thay đổi, thuật toán chỉ dịch chuyển lượng dữ liệu tối thiểu.
 
 
-## CRUSH Rules & Placement
+### CRUSH Rules & Placement
 - CRUSH Rule là định nghĩa cách dữ liệu được phân phối trên cluster.
 - Thông thường sẽ có 2 kiểu:
 
@@ -258,11 +207,11 @@ rule replicated_rule {
 - `chooseleaf firstn 3 type host`: chọn 3 OSD trên 3 host khác nhau.
 - `emit`: xuất kết quả.
 
-### Replicated pools
+#### Replicated pools
 CRUSH chọn N OSD khác nhau để lưu N replica.
 Các replica nằm ở failure domain tách biệt (host hoặc rack khác nhau).
 
-### Erasure-coded pools
+#### Erasure-coded pools
 - Cơ chế hoạt động
     + Dữ liệu chia thành k+m shard (k data, m parity).
     + CRUSH chọn OSD cho từng shard dựa theo rank.
@@ -271,10 +220,10 @@ Các replica nằm ở failure domain tách biệt (host hoặc rack khác nhau)
     + Giữ thứ tự strict giữa rank → shard.
     + Dùng lựa chọn `indep` để xử lý placement độc lập.
 
-# Vận hành và tối ưu 
+## Vận hành và tối ưu 
 
-## Cơ chế Recovery (Khôi phục)
-### Thời gian chờ và Phát hiện lỗi
+### Cơ chế Recovery (Khôi phục)
+#### Thời gian chờ và Phát hiện lỗi
 - **Cơ chế phát hiện:** Ceph sử dụng heartbeat mechanism để phát hiện OSD `down`. Các OSD liên tục gửi tin nhắn heartbeat cho nhau và báo cáo trạng thái tới Monitor.
 
 - **Thời gian chờ mặc định:** 300 giây trước khi đánh dấu OSD là `down` và bắt đầu recovery.
@@ -285,7 +234,7 @@ Các replica nằm ở failure domain tách biệt (host hoặc rack khác nhau)
 mon_osd_down_out_interval = 600  # Tăng lên 600 giây
 ```
 
-### Quá trình khôi phục
+#### Quá trình khôi phục
 1. Xác định PGs cần khôi phục:
 
 - Monitor xác định các Placement Groups (PGs) bị ảnh hưởng bởi OSD failure
@@ -304,7 +253,7 @@ mon_osd_down_out_interval = 600  # Tăng lên 600 giây
 
 - Sử dụng versioning để đảm bảo consistency
 
-### Tối ưu hóa di chuyển dữ liệu
+#### Tối ưu hóa di chuyển dữ liệu
 - **Parallel Recovery:** Multiple PGs được recovery đồng thời
 
 - **Backfill Recovery:** Recovery không ảnh hưởng đến client I/O
@@ -318,15 +267,15 @@ osd_recovery_max_single_start = 1 # Số operations recovery khởi tạo đồn
 osd_recovery_sleep = 0           # Thời gian nghỉ giữa các recovery operations
 ```
 
-## Cơ chế Rebalancing
-### Điều kiện kích hoạt Rebalancing
+### Cơ chế Rebalancing
+#### Điều kiện kích hoạt Rebalancing
 - **Thêm OSD/host mới:** CRUSH tự động tính toán lại data distribution
 
 - **Thay đổi CRUSH Map:** Điều chỉnh weights, rules, hoặc topology
 
 - **OSD failure kéo dài:** Khi OSD bị đánh dấu `out` của cluster
 
-### Quy trình Rebalancing
+#### Quy trình Rebalancing
 1. Tính toán data movement:
 
 - CRUSH algorithm tính toán PGs cần di chuyển dựa trên weight changes
@@ -345,7 +294,7 @@ osd_recovery_sleep = 0           # Thời gian nghỉ giữa các recovery opera
 
 - Tự động điều chỉnh tốc độ dựa trên cluster load
 
-### Ví dụ thực tế tính toán lượng dữ liệu di chuyển
+#### Ví dụ thực tế tính toán lượng dữ liệu di chuyển
 **Ví dụ:**
 Nếu Ceph cluster chứa 2000 OSDs, 1 hệ thống mới được thêm vào với 20 OSDs mới => 1% data sẽ được chuyển trong quá trình tái cân bằng, tất cả OSDs đã có sẽ làm việc song song khi chuyển data, giữ các hoạt động diễn ra bình thường.
 
@@ -359,7 +308,7 @@ Data_movement_percentage = (New_total_weight - Old_total_weight) / Old_total_wei
 
 - Lượng data di chuyển ≈ (2020 - 2000) / 2000 × 100% = 1%
 
-### Best Practices và Khuyến nghị
+#### Best Practices và Khuyến nghị
 Chiến lược thêm OSD mới:
 ```bash
 # Bước 1: Thêm OSD với weight = 0
@@ -380,15 +329,15 @@ osd_backfill_full_ratio = 0.85  # Ngừng backfill khi OSD đạt 85% capacity
 osd_backfill_retry_interval = 10 # Thời gian chờ retry failed backfills
 ```
 
-## Cơ chế tái cấu trúc layout
-### Nguyên lý Minimal Data Movement
+### Cơ chế tái cấu trúc layout
+#### Nguyên lý Minimal Data Movement
 - **Deterministic mapping:** Cùng input (PG + CRUSH Map) → cùng output OSDs
 
 - **Incremental changes:** Chỉ PGs bị ảnh hưởng trực tiếp bởi topology changes mới remap
 
 - **Straw2 algorithm:** Đảm bảo minimal remap khi thay đổi weights
 
-### Quy trình tái ánh xạ
+#### Quy trình tái ánh xạ
 1. Client/OSD computation:
 
 - Mỗi client và OSD tự tính toán mapping mới khi CRUSH Map thay đổi
@@ -407,7 +356,7 @@ osd_backfill_retry_interval = 10 # Thời gian chờ retry failed backfills
 
 - Đảm bảo consistency trên toàn cluster
 
-### Monitoring và Quản lý
+#### Monitoring và Quản lý
 ```bash
 # Kiểm tra recovery status
 ceph status
@@ -421,15 +370,15 @@ ceph -s
 ```
 
 
-## Failure domain configuration
+### Failure domain configuration
 
 
 
 
-# Các Tính Năng Nâng Cao 
-## Device Classes
+## Các Tính Năng Nâng Cao 
+### Device Classes
 [**==> Device Class**](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/10-Failure-Domain-and-Tiers.md#device-class)
-## Tunables
+### Tunables
 CRUSH có sẵn các profile như legacy, hammer, optimal, straw2, ... có thể dùng để đảm bảo tính tương thích khi nâng cấp cluster.
 
 ```bash
@@ -439,7 +388,7 @@ ceph osd crush tunables optimal
 ```
 
 
-# Các Thao tác với CRUSH
+## Các Thao tác với CRUSH
 
 - Xuất và biên dịch CRUSH map
 ```bash

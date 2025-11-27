@@ -1,31 +1,16 @@
-# Mục lục
-- [Mục lục](#mục-lục)
-- [Tổng quan](#tổng-quan)
-- [Erasure Coding](#erasure-coding)
-  - [Nguyên lý Hoạt động](#nguyên-lý-hoạt-động)
-  - [Tại sao Erasure Coding lại quan trọng?](#tại-sao-erasure-coding-lại-quan-trọng)
-    - [So sánh với Replication và RAID](#so-sánh-với-replication-và-raid)
-  - [Cấu hình \& Sử dụng trong Ceph](#cấu-hình--sử-dụng-trong-ceph)
-- [Replication (Nhân bản Dữ Liệu) - Cơ chế Chịu lỗi Mặc định](#replication-nhân-bản-dữ-liệu---cơ-chế-chịu-lỗi-mặc-định)
-  - [**Cơ chế hoạt động :**](#cơ-chế-hoạt-động-)
-  - [Replication Strategy](#replication-strategy)
-    - [Pool size và min\_size](#pool-size-và-min_size)
-    - [Primary-copy Replication](#primary-copy-replication)
 
-
-
-# Tổng quan
+### Tổng quan
 Ceph đảm bảo độ bền và khả dụng của dữ liệu thông qua 2 kỹ thuật chính là **Erasure Coding** ( Data + parity) và **Replication** ( Full copies of data )
 
 
-# Erasure Coding
+### Erasure Coding
 Erasure Coding – Công nghệ Bảo vệ Dữ liệu Tiên tiến Trong Ceph
 
 **Erasure Coding (EC)** là một kỹ thuật bảo vệ dữ liệu giúp tiết kiệm không gian lưu trữ đáng kể so với phương pháp nhân bản (Replication) truyền thống, trong khi vẫn cung cấp khả năng chịu lỗi cao. Nó là xương sống cho các hệ thống lưu trữ phân tán, mạnh mẽ và có khả năng mở rộng đến quy mô exabyte.
 
 **Ví dụ đơn giản:** Thay vì lưu 3 bản sao của một file (tốn 3TB để lưu 1TB dữ liệu), EC "chia nhỏ" dữ liệu và tính toán thêm các phần dự phòng, giúp bạn chỉ cần dung lượng ít hơn (ví dụ: 1.5TB cho 1TB dữ liệu) mà vẫn chịu được lỗi của ổ cứng.
 
-## Nguyên lý Hoạt động
+#### Nguyên lý Hoạt động
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/ec-1.png)
 
 Erasure Coding hoạt động dựa trên hai khái niệm chính:
@@ -48,7 +33,7 @@ Cách thức:
 * Tổng cộng 6 phần được lưu trên các OSD khác nhau.
 * Hệ thống vẫn hoạt động bình thường ngay cả khi 2 OSD bất kỳ cùng lúc bị lỗi.
 
-## Tại sao Erasure Coding lại quan trọng?
+#### Tại sao Erasure Coding lại quan trọng?
 1. Tiết kiệm chi phí & Không gian
 - **Hiệu suất lưu trữ cao:** So với replication (lưu 3 bản sao, overhead 200%), EC có overhead thấp hơn nhiều. Ví dụ, profile k=4, m=2 chỉ có overhead 50% (dùng 1.5GB để lưu 1GB dữ liệu).
 
@@ -64,7 +49,7 @@ Cách thức:
 
 - **Thông minh với CRUSH:** Thay vì dùng một bảng metadata tập trung để tìm dữ liệu (có thể gây nghẽn cổ chai), EC sử dụng thuật toán CRUSH để tính toán vị trí của các khối dữ liệu. Điều này giúp tăng hiệu năng và độ trễ thấp trong các hệ thống quy mô lớn. CRUSH hiểu rõ cơ sở hạ tầng (ổ đĩa, node, rack, trung tâm dữ liệu) để đảm bảo các khối được phân tán một cách an toàn.
 
-### So sánh với Replication và RAID
+##### So sánh với Replication và RAID
 
 | Đặc điểm | Replication | RAID | Erasure Coding |
 |---------|-------------|------|----------------|
@@ -75,7 +60,7 @@ Cách thức:
 | **Khả năng mở rộng** | Hạn chế | Rất hạn chế | Rất tốt |
 | **Tính phù hợp** | Dữ liệu nóng, performance cao | Server đơn lẻ | Dữ liệu lớn, cold storage |
 
-## Cấu hình & Sử dụng trong Ceph
+#### Cấu hình & Sử dụng trong Ceph
 
 Tạo một Erasure Coded Pool
 ```bash
@@ -100,14 +85,14 @@ ceph osd pool create my_custom_ec_pool erasure myprofile
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/ceph-rep-ec.png)
 
 
-# Replication (Nhân bản Dữ Liệu) - Cơ chế Chịu lỗi Mặc định
+### Replication (Nhân bản Dữ Liệu) - Cơ chế Chịu lỗi Mặc định
 - Replication là phương pháp mặc định của Ceph để đảm bảo tính sẵn sàng và chịu lỗi, đặc biệt hiệu quả cho dữ liệu cần hiệu năng cao (hot data).
 
 - Ceph tạo ra nhiều bản sao đầy đủ của cùng một đối tượng (object) và lưu trữ chúng trên các OSD khác nhau.
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/rep-1.png)
 
-##  **Cơ chế hoạt động :**
+###  **Cơ chế hoạt động :**
 1. **Client Tính toán:** Client sử dụng CRUSH Lookup để xác định OSD Primary cho dữ liệu. </br> 
 2. **Client Ghi:** Client ghi dữ liệu tới OSD Primary. </br> 
 3. **OSD Primary Nhân bản:** OSD Primary chịu trách nhiệm nhân bản dữ liệu tới các OSD Secondary/Replica theo số lượng bản sao quy định (thường là 3 bản sao, tức 2 replicas). </br> 
@@ -122,15 +107,15 @@ ceph osd pool create my_custom_ec_pool erasure myprofile
 
 >Toàn bộ quá trình nhân bản giữa OSD Primary và Secondary diễn ra trên Cluster Network (Mạng riêng). Do đó, nếu mạng này chậm, nó sẽ ảnh hưởng trực tiếp đến tốc độ ghi của client, vì client phải chờ ACK. 
 
-## Replication Strategy
-### Pool size và min_size
+#### Replication Strategy
+##### Pool size và min_size
 
 size thiết lập số lượng replicas cho objects trong pool, trong khi min_size thiết lập số lượng replicas tối thiểu cần có để PGs active và cho phép I/O operations Scaleway
 Write chỉ được acknowledge lại cho client khi min_size requirement của pool được đáp ứng, tức là write đã được persist trên ít nhất min_size OSDs Medium
 Để high availability, Ceph Storage Cluster nên lưu nhiều hơn 2 copies của object (size = 3 và min_size = 2) để có thể tiếp tục chạy ở degraded state trong khi vẫn duy trì data safety
 
 
-###  Primary-copy Replication
+#####  Primary-copy Replication
 
 
 Trong mỗi Placement Group, Ceph gán một OSD làm Primary. Primary OSD điều phối tất cả write operations cho PG đó và đảm bảo consistency giữa các replicas Medium

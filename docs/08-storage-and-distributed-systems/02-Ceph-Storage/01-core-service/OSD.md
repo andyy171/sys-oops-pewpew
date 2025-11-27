@@ -1,10 +1,10 @@
-# Tổng quan 
+# OSD 
 Ceph Object Storage Device (OSD) là thành phần cốt lõi trong kiến trúc Ceph storage cluster, đóng vai trò lưu trữ dữ liệu thực tế trên các ổ đĩa lưu trữ vật lý dưới dạng objects. OSD daemon chịu trách nhiệm phần lớn các hoạt động xử lý dữ liệu bên trong Ceph cluster, bao gồm lưu trữ, nhân bản, khôi phục và đảm bảo tính nhất quán của dữ liệu.
 - OSD báo cáo trạng thái (up/down) cho cluster, xử lý replication và kiểm tra lỗi (scrubbing).
 - Điểm đặc biệt trong kiến trúc Ceph là client không cần thông qua các lớp trung gian khi truy xuất dữ liệu. Sau khi nhận cluster map từ monitors, client tương tác trực tiếp với OSD để thực hiện các thao tác đọc/ghi, giúp tăng tốc độ xử lý đáng kể so với các hệ thống storage truyền thống.
 
-# Kiến trúc và cơ chế hoạt động
-## Cơ chế lưu trữ và truy xuất dữ liệu
+## Kiến trúc và cơ chế hoạt động
+### Cơ chế lưu trữ và truy xuất dữ liệu
 
 Ceph OSD lưu trữ tất cả dữ liệu của client dưới dạng objects và trực tiếp đáp ứng các yêu cầu truy xuất. Quy trình hoạt động diễn ra như sau:
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/osd-1.png)
@@ -15,7 +15,7 @@ Ceph OSD lưu trữ tất cả dữ liệu của client dưới dạng objects v
 
 => Cơ chế này tạo nên sự khác biệt cơ bản giữa Ceph và các giải pháp storage khác, giúp tối ưu hiệu năng và giảm độ trễ.
 
-## Replication và High Availability
+### Replication và High Availability
 Dựa trên cấu hình replication size, Ceph đảm bảo tính sẵn sàng cao bằng cách:
 
 - Nhân bản mỗi object tới nhiều cluster nodes khác nhau
@@ -24,7 +24,7 @@ Dựa trên cấu hình replication size, Ceph đảm bảo tính sẵn sàng ca
 
 > Cơ chế phân tán này không chỉ đảm bảo tính HA mà còn cho phép hệ thống chịu lỗi tốt, duy trì hoạt động ngay cả khi có sự cố xảy ra.
 
-## Khôi phục tự động
+### Khôi phục tự động
 
 Khi xảy ra lỗi disk, Ceph OSD daemon tự động kích hoạt quy trình recovery:
 
@@ -33,23 +33,23 @@ Khi xảy ra lỗi disk, Ceph OSD daemon tự động kích hoạt quy trình re
 3. Hệ thống tạo bản sao mới và phân phối tới OSD khác
 4. Quá trình diễn ra trong suốt, không gián đoạn dịch vụ
 
-# OSD lifecycle (up/down, in/out)
+## OSD lifecycle (up/down, in/out)
 
 
 
-# Heartbeat mechanism
+## Heartbeat mechanism
 
 
-# Primary OSD selection
+## Primary OSD selection
 
 
-# Scrubbing (shallow & deep)
+## Scrubbing (shallow & deep)
 
-# Recovery vs Backfill
+## Recovery vs Backfill
 
 
-# Cấu hình OSD
-## Tỷ lệ OSD trên Physical Hardware
+## Cấu hình OSD
+### Tỷ lệ OSD trên Physical Hardware
 Theo mặc định, Ceph cluster tạo một OSD daemon cho mỗi disk vật lý. Tuy nhiên, hệ thống hỗ trợ các cấu hình linh hoạt:
 
 - **One OSD per disk (khuyến nghị):** Phổ biến nhất trong môi trường JBOD
@@ -58,7 +58,7 @@ Theo mặc định, Ceph cluster tạo một OSD daemon cho mỗi disk vật lý
 
 > Đối với hầu hết các triển khai production, việc sử dụng một OSD daemon trên mỗi disk vật lý là lựa chọn tối ưu về hiệu năng và quản lý.
 
-### Lưu ý về RAID
+#### Lưu ý về RAID
 Không nên sử dụng RAID với Ceph vì những lý do sau:
 
 - **Nhân bản kép:** Chạy RAID và replication của Ceph đồng thời gây lãng phí tài nguyên, dữ liệu được nhân bản 2 lần
@@ -68,8 +68,8 @@ Không nên sử dụng RAID với Ceph vì những lý do sau:
 => Nếu bắt buộc phải sử dụng RAID, chỉ nên dùng RAID 0 để tận dụng throughput mà không tạo redundancy thừa.
 
 
-# Filesystem cho Ceph OSD
-## Vai trò của Linux Filesystem
+## Filesystem cho Ceph OSD
+### Vai trò của Linux Filesystem
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/osd-2.png)
 
 Ceph OSD hoạt động dựa trên ba tầng:
@@ -87,8 +87,8 @@ Linux filesystem đóng vai trò quan trọng thông qua việc hỗ trợ Exten
 
 XATTRs lưu trữ thông tin mở rộng dạng cặp xattr_name và xattr_value, cho phép OSD daemon quản lý dữ liệu hiệu quả.
 
-## So sánh các Filesystem
-### Btrfs (B-tree File System)
+### So sánh các Filesystem
+#### Btrfs (B-tree File System)
 - Ưu điểm:
 
     + Hiệu năng tốt nhất trong ba lựa chọn
@@ -106,7 +106,7 @@ XATTRs lưu trữ thông tin mở rộng dạng cặp xattr_name và xattr_value
     + Chưa ổn định cho môi trường production
     + Chỉ phù hợp cho test deployment
 
-### XFS
+#### XFS
 - Ưu điểm:
 
     + Filesystem ổn định, tin cậy và được kiểm chứng
@@ -121,7 +121,7 @@ XATTRs lưu trữ thông tin mở rộng dạng cặp xattr_name và xattr_value
     + Là journaling filesystem, tạo overhead khi ghi dữ liệu (ghi vào journal trước, sau đó mới ghi vào filesystem)
 
 > Lựa chọn phổ biến nhất và ổn định nhất cho OSD trong production.
-### ext4 (Fourth Extended Filesystem)
+#### ext4 (Fourth Extended Filesystem)
 - Ưu điểm:
 
     + Hỗ trợ journaling filesystem
@@ -134,7 +134,7 @@ XATTRs lưu trữ thông tin mở rộng dạng cặp xattr_name và xattr_value
     + Hiệu năng kém hơn Btrfs và XFS
     + Không phù hợp làm filesystem chính cho OSD
 
-## Extended Attributes (XATTRs)
+### Extended Attributes (XATTRs)
 XATTRs là yếu tố then chốt cho hoạt động của Ceph OSD:
 
 - Lưu trữ metadata và trạng thái của objects
@@ -142,7 +142,7 @@ XATTRs là yếu tố then chốt cho hoạt động của Ceph OSD:
 - Btrfs và XFS hỗ trợ dung lượng XATTRs lớn hơn `ext4` đáng kể
 - `ext4` bị hạn chế về số byte có thể lưu trong XATTRs, không đủ cho nhiều trường hợp sử dụng
 
-# Ceph OSD Journal
+## Ceph OSD Journal
 Journal là một thành phần quan trọng trong kiến trúc OSD, hoạt động như buffer để tối ưu hiệu năng ghi. Trước khi dữ liệu được ghi vào backing store chính, Ceph ghi dữ liệu vào journal trước.
 
 - Đặc điểm của Journal:
@@ -154,7 +154,7 @@ Journal là một thành phần quan trọng trong kiến trúc OSD, hoạt đ�
 
 > **Kích thước khuyến nghị:** 10GB là size cơ bản, có thể lớn hơn tùy theo workload.
 
-## Cơ chế hoạt động
+### Cơ chế hoạt động
 Journal giúp tăng tốc độ và tính bảo đảm thông qua quy trình:
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/osd-3.png)
@@ -165,7 +165,7 @@ Journal giúp tăng tốc độ và tính bảo đảm thông qua quy trình:
 
 => Cơ chế này cho phép filesystem có đủ thời gian để tổ chức và gộp các write operations xuống disk một cách hiệu quả.
 
-## Tối ưu với SSD Journal
+### Tối ưu với SSD Journal
 Sử dụng SSD cho journal mang lại lợi ích đáng kể:
 - Ưu điểm:
 
@@ -181,7 +181,7 @@ Sử dụng SSD cho journal mang lại lợi ích đáng kể:
 
 > **Lưu ý quan trọng:** Nếu journal disk chậm hơn backing store, nó sẽ trở thành điểm nghẽn cổ chai cho toàn bộ cluster.
 
-## Bảo vệ dữ liệu với Journal
+### Bảo vệ dữ liệu với Journal
 Trường hợp lỗi Journal
 - **Với Btrfs:**
 
@@ -194,7 +194,7 @@ Trường hợp lỗi Journal
     + Rủi ro mất dữ liệu cao hơn khi journal fail
     + Cần backup và monitoring chặt chẽ
 
-## Best Practices
+### Best Practices
 - Vị trí Journal:
 
     + Ưu tiên SSD cho journal trong production
@@ -217,7 +217,7 @@ Trường hợp lỗi Journal
 
 
 
-## PG (Placement Group)
+### PG (Placement Group)
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/pg.png)
 
 - Khi Ceph cluster nhận yêu cầu từ data storage, nó sẽ chia thành nhiều phẩn đc gọi là placement groups (PG). Tuy nhiên, CRUSH data đầu tiên được chia nhỏ thành tập các Obj, dựa trên hoạt động hash trên tên obj , mức nhân bản, tổng các placement groups trong hệ thông, placement groups IDs được sinh ra tương ứng.
@@ -252,7 +252,7 @@ Tổng OSDs = 160, mức nhận bản = 3, tổng pool = 3 => Tông PGs = 1777.7
 
 </details>
 
-# Crimson OSD 
+## Crimson OSD 
 - Crimson OSD là phiên bản mới, cải tiến của Ceph OSD (một phần mềm quản lý lưu trữ dữ liệu trong hệ thống Ceph). Nó được thiết kế đặc biệt để hoạt động tốt hơn trên các ổ đĩa tốc độ cao như NVMe (một loại ổ SSD siêu nhanh). Dự án này nhằm viết lại OSD để nó chạy hiệu quả hơn, có thể mở rộng lớn hơn, mà vẫn tương thích với các phần mềm cũ của Ceph.
 - Ceph được tạo ra hơn 10 năm trước, lúc đó chủ yếu dựa vào sức mạnh của một lõi CPU duy nhất. Điều này làm nó không tận dụng hết khả năng của các thiết bị lưu trữ hiện đại. Ví dụ, OSD cũ sử dụng nhiều luồng (threads) để xử lý dữ liệu, nhưng điều này gây chậm trễ vì các luồng phải "nói chuyện" với nhau giữa các lõi CPU.
 
@@ -268,16 +268,16 @@ Tổng OSDs = 160, mức nhận bản = 3, tổng pool = 3 => Tông PGs = 1777.7
 
 > Crimson OSD tương thích hoàn toàn với OSD cũ, nên bạn có thể nâng cấp mà không làm gián đoạn hệ thống. Nó hỗ trợ giao thức librados (một cách giao tiếp dữ liệu) và làm việc được với các client cũ.
 
-## Giới hạn hiện tại
+### Giới hạn hiện tại
 Crimson vẫn đang được phát triển mạnh mẽ, nên chưa đầy đủ tính năng như phiên bản cũ. Hiện tại, nó chưa hỗ trợ chạy trên nhiều lõi CPU thực sự (đa nhân), nhưng bạn có thể "giả lập" bằng cách chạy nhiều bản Crimson riêng lẻ trên cùng một thiết bị.
 
-## Testing và CI/CD
+### Testing và CI/CD
 - Có bộ kiểm tra tên `crimson-rados` đang được xây dựng, dùng để kiểm tra các thay đổi mới (PR) và tránh lỗi cũ quay lại.
 - Ngoài ra, có các bài kiểm tra hiệu năng (performance test) chạy bằng công cụ CBT, khoảng 2 lần mỗi tuần.
 
 => Hệ thống CI/CD của Ceph tự động xây dựng các container (gói phần mềm) thay thế OSD cũ bằng Crimson OSD. Phiên bản chính (nhánh main) được build hàng ngày, và bạn có thể tải images từ kho lưu trữ Quay.
 
-## Cấu hình và triển khai
+### Cấu hình và triển khai
 - Crimson không bật mặc định. Để bật, khi build Ceph, bạn dùng lệnh: `WITH_CRIMSON=true ./install-deps.sh` và `./do_cmake.sh -DWITH_CRIMSON=ON`.
 - Các luồng xử lý I/O thường được gắn cố định vào một lõi CPU cụ thể để tối ưu. Có cơ chế "Alien threads" trong Seastar (một framework Crimson dùng) để hỗ trợ các tác vụ cũ (blocking tasks) mà không làm chậm hệ thống.
 - Trước khi triển khai OSD, bạn cần cấu hình Ceph:
@@ -286,9 +286,9 @@ ceph config set global 'enable_experimental_unrecoverable_data_corrupting_featur
 ```
 Sau đó, bật flag `allow_crimson` và thiết lập các pool (nhóm lưu trữ) mặc định dùng Crimson.
 
-### Hiệu năng
+#### Hiệu năng
 - Lý tưởng nhất, Crimson loại bỏ hoàn toàn các khóa (lock) và chuyển ngữ cảnh (context-switch) không cần thiết. Mỗi nhiệm vụ chạy liên tục trên CPU đến khi xong hoặc nhường quyền một cách chủ động. Nếu không cần giao tiếp giữa các phần khác nhau, hiệu năng sẽ tăng tuyến tính theo số lõi CPU – nghĩa là thêm lõi là nhanh hơn, cho đến khi thiết bị lưu trữ đạt giới hạn.
 - Hiệu năng của Crimson phụ thuộc trực tiếp vào CPU, vì nó có thể dùng hết sức mạnh của từng lõi.
 
-## Kế hoạch phát triển
+### Kế hoạch phát triển
 Crimson được thiết kế để thay thế trực tiếp cho ceph-osd cũ (drop-in replacement). Tuy nhiên, vì cách lập trình hoàn toàn khác biệt, nó thực chất là một phiên bản viết lại từ đầu của OSD.

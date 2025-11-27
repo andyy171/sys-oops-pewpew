@@ -1,4 +1,4 @@
-# Tổng quan
+# Interfaces
 Ceph cung cấp một nền tảng lưu trữ thống nhất thông qua nhiều giao diện (Interface) để đáp ứng các nhu cầu lưu trữ khác nhau.
 
 - **Ceph Object Storage (RADOS Gateway - RGW)** cung cấp giao diện lưu trữ đối tượng tương thích với các chuẩn RESTful phổ biến như Amazon S3 và OpenStack Swift. Đây là giải pháp lý tưởng cho các ứng dụng điện toán đám mây, lưu trữ dữ liệu phi cấu trúc và nội dung số lớn.
@@ -10,7 +10,7 @@ Ceph cung cấp một nền tảng lưu trữ thống nhất thông qua nhiều 
 Tất cả các giao diện này đều được xây dựng trên nền tảng RADOS vững chắc, cho phép chúng kế thừa các đặc tính về khả năng mở rộng, độ tin cậy và tính nhất quán của cụm Ceph.
 
 
-# RBD – Ceph Block Device
+## RBD – Ceph Block Device
 - RBD hay Ceph Block Device là thành phần cung cấp giải pháp block storage trong Ceph, lưu trữ dữ liệu dạng khối với mở rộng, hiệu năng cao, chịu lỗi vượt trội. RBD thiết kế đáp ứng **lưu trữ phân tán, mạnh mẽ, mở rộng cao**, hỗ trợ exabyte, tương thích cao hệ thống ảo hóa phần cứng. RBD nổi bật ngành lưu trữ đám mây, giải pháp cho vấn đề cloud public private hybrid. Phần cứng quyết định hạ tầng, RBD đáp ứng, cung cấp block storage mạnh, tin cậy cao.
 
 - RBD blocks chia thành nhiều obj, phân tán toàn Ceph cluser, cung cấp tính bảo đảm, hiệu năng cao. RBD hỗ trợ Linux kernel, và được tích hợp với Linux kernel, cung cấp tính năng snapshot tốc độ cao, nhẹ, copy-on-write cloning, and several others. Hỗ trợ in-memory caching, nâng cao hiệu năng.
@@ -22,18 +22,18 @@ Tất cả các giao diện này đều được xây dựng trên nền tảng 
 - Ceph RBD hỗ trợ image size tới 16EB. Image có thể là disk vật lý, máy ảo, … Các công nghệ KVM, Zen hỗ trợ đầy đẩy RBD, tăng tốc máy ảo. Ceph block hỗ trợ đầy đủ nền tảng ảo hóa mới OpenStack, CloudStack,..
 + Nền tảng RBD dựa object RADOS, tổ chức blocks objects. Dữ liệu block lưu object cluster. Block storage RBD giải pháp truyền thống, hạ tầng độc lập phần cứng. RBD quản lý object, nhân bản cluster, nâng bảo đảm. Block không đường dẫn vật lý, linh hoạt mở rộng petabyte-exabyte.
 
-## RBD snapshots & cloning
+### RBD snapshots & cloning
 
 
 
-## RBD mirroring (journal-based, snapshot-based)
+### RBD mirroring (journal-based, snapshot-based)
 
 
-## RBD exclusive-lock, object-map, fast-diff
+### RBD exclusive-lock, object-map, fast-diff
 
 
 
-## Thao tác cơ bản 
+#### Thao tác cơ bản 
 ```bash
 # Thin provisioning & dynamic resize
 rbd create --size 1T --thick-provision pool/image
@@ -50,7 +50,7 @@ rbd mirror pool enable pool snapshot
 rbd mirror daemon status
 ```
 
-### Các tính năng nâng cao hơn 
+#### Các tính năng nâng cao hơn 
 - Tăng tốc độ ghi 
 ```bash
 rbd create --image-feature exclusive-lock,object-map,fast-diff,journaling pool/image
@@ -70,7 +70,7 @@ ceph orch apply iscsi pool --gateway-placement="3 host[6-8]"
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/RBD.png)
 
-## So sánh với block truyền thống 
+### So sánh với block truyền thống 
 - Block truyền thống không metadata thông minh. Metadata quyết định viết đọc. Cần trung tâm quản lý. Request tìm bảng metadata lớn, trễ cao hệ lớn. 
 - RBD dùng CRUSH tính toán vị trí, cải thiện tốc độ. Phân tán node. CRUSH nhận thức hạ tầng disk pool node rack switch data center. Lỗi, lưu bản sao nhân rộng, data sẵn sàng. CRUSH tự quản trị sửa lỗi nhân rộng. Hơn 1 bản sao. Hạ tầng block đảm bảo. Sử dụng RBD tăng mở rộng.
 RAID kết thúc: RAID ứng dụng lâu, thành công tái tạo chịu lỗi. Tới giới hạn. Dung lượng 4TB-6TB, tái tạo tốn giờ ngày tháng tài nguyên. Tăng TCO chi phí. Quan tâm disk size rpm. Hardware đắt RAID cards, không thêm dung lượng. RAID 5 chịu 1, RAID 6 2, nhiều khó khôi phục. Chỉ disk, không network hardware OS. RBD giải quyết, không phụ thuộc RAID, software-defined. Nhân bản config, định nghĩa bản sao tối ưu. Chịu lỗi nhiều hơn 2, khôi phục nhanh, không chính phụ. Lưu lượng lớn CRUSH maps.
@@ -79,7 +79,7 @@ RBD block storage: Block SAN, volumes block node. Lưu lớn đảm bảo hiệu
 >RBD dẫn đầu block mới. Vượt giới hạn. Mở software-defined tương thích. Giao diện linh hoạt. Mạnh RAID vượt giới hạn. Bảo đảm HA. Thống nhất toàn diện block. Phù hợp small big block không trục trặc. RBD phân tán client nhanh. Không truyền thống kỹ thuật mới tính toán động. Tăng hiệu năng. Dữ liệu tổ chức tự động. Không lo sự cố intelligent xử lý. Tự quản trị sửa lỗi. Vượt đảm bảo. Sửa disk node network rack data center geographies.
 >
 
-# CephFS – Ceph File System
+## CephFS – Ceph File System
 - Ceph filesystem hay CephFS, là POSIX-compliant filesystem, được sử dụng trong Ceph storage cluster sử dụng để lưu trữ user data. CephFS hỗ trợ tốt Linux kernel driver, kiến CephFS tương thích tốt với các nền tảng Linux OS. CephFS lưu data và medata riêng biệt, cung cấp hiệu năng, tính bảo đảm cho app host nằm trên nó
 
 Trong Ceph cluster, Ceph fs lib (libcephfs) chạy trên Rados library (librados) – giao thức thuộc Ceph storage - file, block, and object storage. Để sử dụng CephFS, cần ít nhất 1 Ceph metadata server (MDS) để chạy cluster nodes. Tuy nhiên, sẽ không tốt khi chỉ có 1 MDS server nó sẽ ảnh hưởng tính chịu lỗi Ceph. Khi cấu hình MDS, client có thể sử dụng CephFS theo nhiều cách. Để mount Cephfs, client cần sử dụng Linux kernel hoặc ceph-fuse (filesystem in user space) drivers provided by the Ceph community.
@@ -88,23 +88,23 @@ Bên cạnh, Client có thể sử dụng phần mềm thứ 3 như Ganesha for 
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/cephfs.png)
 
-## **MDS (Metadata Server)**
+### **MDS (Metadata Server)**
 - Quản lý metadata cho CephFS (file storage), như cấu trúc thư mục, quyền truy cập.
 - Phân tán metadata qua nhiều MDS để chịu lỗi.
 
-### MDS active/standby roles
+#### MDS active/standby roles
 
-### MDS failure & recovery
-
-
-## Multiple filesystems support
-
-## Data pool vs Metadata pool
-
-## CephFS snapshots
+#### MDS failure & recovery
 
 
-# RGW – RADOS Gateway
+### Multiple filesystems support
+
+### Data pool vs Metadata pool
+
+### CephFS snapshots
+
+
+## RGW – RADOS Gateway
 Phương pháp lưu trữ data dạng object thay vì file, blocks truyền thống. Object-based storage nhận được nhiều sự chú ý trong storage industry.
 
 Các tổ chức mong muốn giải pháp lưu trữ toàn diện cho lượng data khổng lồ, Ceph là giải pháp nổi bật vì nó là true object-based storage system. Ceph phân phối obj storage system, cung cấp object storage interface thông qua Ceph's object gateway, được biệt là RADOS gateway (radosgw).
@@ -126,13 +126,13 @@ Admin API: This is also known as the management API or native API, which can be 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/rgw.png)
 
 
-## Multi-site replication (zones, zonegroups, realms)
+### Multi-site replication (zones, zonegroups, realms)
 
 
-## S3 vs Swift API
+### S3 vs Swift API
 
 
-## Bucket policies & lifecycle
+### Bucket policies & lifecycle
 
 
-## RGW indexless buckets
+### RGW indexless buckets

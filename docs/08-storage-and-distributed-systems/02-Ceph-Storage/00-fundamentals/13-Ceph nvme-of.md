@@ -1,35 +1,13 @@
-# Mục lục
-- [Mục lục](#mục-lục)
-- [Khái niệm cốt lõi](#khái-niệm-cốt-lõi)
-  - [NVMe-oF là gì?](#nvme-of-là-gì)
-  - [Các thuật ngữ NVMe và Ánh xạ với Ceph (Terminology)](#các-thuật-ngữ-nvme-và-ánh-xạ-với-ceph-terminology)
-  - [Kiến trúc và cấu tạo của Ceph NVME-oF Gateway](#kiến-trúc-và-cấu-tạo-của-ceph-nvme-of-gateway)
-- [HIGH AVAILABILITY (HA) VÀ FAILOVER](#high-availability-ha-và-failover)
-  - [Kiến trúc Tổng thể HA Group](#kiến-trúc-tổng-thể-ha-group)
-  - [Cơ chế Hoạt động của HA](#cơ-chế-hoạt-động-của-ha)
-  - [Failback (Phục hồi Chủ sở hữu)](#failback-phục-hồi-chủ-sở-hữu)
-  - [Giám sát và Phát hiện Lỗi (NVMe Monitor)](#giám-sát-và-phát-hiện-lỗi-nvme-monitor)
-- [TÍNH NĂNG QUẢN LÝ VÀ BẢO MẬT (MANAGEMENT \& SECURITY)](#tính-năng-quản-lý-và-bảo-mật-management--security)
-  - [Quản lý Chất lượng Dịch vụ (QoS)](#quản-lý-chất-lượng-dịch-vụ-qos)
-  - [Kiểm soát Truy cập (Access Control)](#kiểm-soát-truy-cập-access-control)
-  - [Xác thực và Mã hóa](#xác-thực-và-mã-hóa)
-- [HIỆU SUẤT VÀ KHẢ NĂNG MỞ RỘNG (PERFORMANCE \& SCALING)](#hiệu-suất-và-khả-năng-mở-rộng-performance--scaling)
-  - [Thách thức về Tài nguyên và I/O](#thách-thức-về-tài-nguyên-và-io)
-  - [Khả năng Mở rộng (Scale Limits)](#khả-năng-mở-rộng-scale-limits)
-  - [Các Hướng Phát triển Hiệu suất trong Tương lai](#các-hướng-phát-triển-hiệu-suất-trong-tương-lai)
+# Ceph nvme-of
 
+## Khái niệm cốt lõi 
 
-
-
-
-# Khái niệm cốt lõi 
-
-## NVMe-oF là gì?
+### NVMe-oF là gì?
 - Là một giao thức mạng cho phép truy cập các thiết bị lưu trữ NVMe từ xa.
 - Sử dụng các kết nối mạng tốc độ cao (như InfiniBand, RoCE) thay vì bus PCIe thông thường.
 - Giúp thu hẹp đáng kể khoảng cách về hiệu suất giữa lưu trữ cục bộ và lưu trữ từ xa, giảm độ trễ xuống chỉ còn vài micro giây. 
 
-## Các thuật ngữ NVMe và Ánh xạ với Ceph (Terminology)
+### Các thuật ngữ NVMe và Ánh xạ với Ceph (Terminology)
 Khi làm việc với Ceph NVMe-oF Gateway, việc hiểu rõ các thuật ngữ của giao thức NVMe và cách chúng ánh xạ tới các thực thể Ceph là rất quan trọng:
 - **Namespace:** Đây là đơn vị lưu trữ cơ bản nhất trong NVMe, tương đương với một **iSCSI/FC LUN**. Trong kiến trúc Ceph NVMe-oF Gateway, một Namespace được ánh xạ trực tiếp tới một RBD Image trong Ceph Cluster.
 - **Subsystem:** Đây là thực thể chính mà **Initiator (Host)** kết nối tới, sử dụng địa chỉ IP và Port. Subsystem là một Container logic chứa nhiều Namespace và được nhận dạng bằng một tên duy nhất gọi là **NQN (NVMe Qualified Name)**. Nó đóng vai trò quan trọng trong việc định nghĩa các chính sách kiểm soát truy cập (Access Control) cấp cao.
@@ -39,7 +17,7 @@ Khi làm việc với Ceph NVMe-oF Gateway, việc hiểu rõ các thuật ngữ
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/nvme-terminology.png)
 
-## Kiến trúc và cấu tạo của Ceph NVME-oF Gateway
+### Kiến trúc và cấu tạo của Ceph NVME-oF Gateway
 Kiến trúc của **Ceph NVMe/TCP Gateway**
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/ceph-nvme-tcp-gateway.png)
@@ -65,10 +43,10 @@ Kiến trúc của **Ceph NVMe-oF Gateway** được thiết kế để tách bi
 + **Gateway Group:** Là một tập hợp các Gateway được cấu hình để chia sẻ cùng một tập hợp Subsystem và Namespace, phục vụ cho một nhóm Initiator nhất định. Việc này cũng cho phép phân chia tài nguyên và cô lập người dùng (Multi-tenancy).
 
 
-# HIGH AVAILABILITY (HA) VÀ FAILOVER
+## HIGH AVAILABILITY (HA) VÀ FAILOVER
 Các cơ chế kỹ thuật giúp Ceph NVMe-oF Gateway đạt được tính sẵn sàng cao, khả năng chịu lỗi, và phục hồi nhanh khi sự cố.
 
-## Kiến trúc Tổng thể HA Group
+### Kiến trúc Tổng thể HA Group
 
 - NVMe-oF Gateway được triển khai theo mô hình nhóm, gọi là HA Group (High Availability Group). Đây là đơn vị cơ bản đảm bảo tính sẵn sàng cao cho dịch vụ NVMe-oF.
 - Mỗi HA Group phải có ít nhất 2 Gateway để đảm bảo khả năng dự phòng. Nếu chỉ có một Gateway duy nhất, hệ thống sẽ không đạt trạng thái HA thực sự.
@@ -84,7 +62,7 @@ Các cơ chế kỹ thuật giúp Ceph NVMe-oF Gateway đạt được tính s�
 
 - Cấu hình được quản lý tập trung, tránh sai lệch cấu hình giữa các node.
 
-## Cơ chế Hoạt động của HA
+### Cơ chế Hoạt động của HA
 Tính sẵn sàng cao được đảm bảo thông qua sự phối hợp của ba thành phần chính: Discovery, Multipath, và NVMe ANA (Asymmetric Namespace Access).
 
 - **Discovery và Multipath**
@@ -143,7 +121,7 @@ Các I/O đang hoạt động sẽ được tự động chuyển hướng sang 
 
 + Cơ chế Block Listing được sử dụng để ngăn chặn tình trạng I/O đồng thời từ nhiều đường dẫn khác nhau, đảm bảo tính toàn vẹn dữ liệu.
 
-## Failback (Phục hồi Chủ sở hữu)
+### Failback (Phục hồi Chủ sở hữu)
 - Khi Gateway bị lỗi phục hồi hoạt động và gửi lại tín hiệu Beacon:
 
 + NVMe Monitor sẽ kích hoạt quy trình Failback, trả lại quyền sở hữu ANA Group ban đầu.
@@ -152,7 +130,7 @@ Các I/O đang hoạt động sẽ được tự động chuyển hướng sang 
 
 - Việc này giúp khôi phục trạng thái cân bằng tải ban đầu giữa các Gateway.
 
-## Giám sát và Phát hiện Lỗi (NVMe Monitor)
+### Giám sát và Phát hiện Lỗi (NVMe Monitor)
 
 Việc giám sát liên tục là yếu tố then chốt để kích hoạt quá trình Failover.
 
@@ -175,11 +153,11 @@ Việc giám sát liên tục là yếu tố then chốt để kích hoạt quá
 Khi cấu hình được thay đổi trên một Gateway (ví dụ tạo Subsystem hoặc thêm Namespace), thay đổi đó sẽ được cập nhật tự động tới toàn bộ nhóm
 
 
-# TÍNH NĂNG QUẢN LÝ VÀ BẢO MẬT (MANAGEMENT & SECURITY)
+## TÍNH NĂNG QUẢN LÝ VÀ BẢO MẬT (MANAGEMENT & SECURITY)
 
 Các tính năng giúp vận hành Ceph NVMe-oF dễ dàng, an toàn và tuân thủ các quy tắc QoS
 
-## Quản lý Chất lượng Dịch vụ (QoS)
+### Quản lý Chất lượng Dịch vụ (QoS)
 Khả năng kiểm soát I/O là quan trọng để cô lập và bảo vệ các ứng dụng khác nhau.
 
 - Đặc điểm QoS: Chức năng QoS được xây dựng trên nền tảng của SPDK và được cấu hình thông qua API của Gateway.
@@ -194,7 +172,7 @@ Khả năng kiểm soát I/O là quan trọng để cô lập và bảo vệ cá
 
 + IOPS ghi tối đa (Max Write IOPS).
 
-## Kiểm soát Truy cập (Access Control)
+### Kiểm soát Truy cập (Access Control)
 Cơ chế phân quyền được thực hiện theo lớp để đảm bảo an ninh mạng.
 
 - Subsystem Masking:
@@ -209,7 +187,7 @@ Cơ chế phân quyền được thực hiện theo lớp để đảm bảo an 
 
 + Cho phép chỉ định danh sách các Host NQN được phép truy cập vào từng Namespace riêng lẻ trong Subsystem. Điều này cần thiết để chia sẻ Subsystem nhưng hạn chế quyền truy cập vào các LUN cụ thể.
 
-## Xác thực và Mã hóa
+### Xác thực và Mã hóa
 Bảo mật được phân loại thành bảo mật lưu lượng I/O và bảo mật giao tiếp quản lý.
 
 - **Xác thực Inbound (CHAP):**
@@ -232,10 +210,10 @@ Bảo mật được phân loại thành bảo mật lưu lượng I/O và bảo
 
 + Sử dụng **Mutual TLS** để bảo mật kênh giao tiếp gRPC (Control Plane) giữa CLI/API và Gateway. Cấu hình này được quản lý thông qua Ceph ADM và đảm bảo các lệnh quản lý không bị nghe lén.
 
-# HIỆU SUẤT VÀ KHẢ NĂNG MỞ RỘNG (PERFORMANCE & SCALING)
+## HIỆU SUẤT VÀ KHẢ NĂNG MỞ RỘNG (PERFORMANCE & SCALING)
 Các vấn đề về tài nguyên, giới hạn mở rộng và chiến lược tối ưu hiệu suất của Ceph NVMe-oF.
 
-## Thách thức về Tài nguyên và I/O
+### Thách thức về Tài nguyên và I/O
 
 Việc sử dụng **SPDK (Storage Performance Development Kit)** mang lại hiệu suất cao nhưng cũng đặt ra yêu cầu cao về tài nguyên.
 
@@ -253,7 +231,7 @@ Việc sử dụng **SPDK (Storage Performance Development Kit)** mang lại hi�
 
 - **Tối ưu hóa Bộ nhớ:** SPDK yêu cầu sử dụng Huge Pages (Bộ nhớ Lớn) để đạt hiệu suất cao nhất. Việc không sử dụng Huge Pages sẽ ảnh hưởng lớn đến độ trễ và thông lượng.
 
-## Khả năng Mở rộng (Scale Limits)
+### Khả năng Mở rộng (Scale Limits)
 
 Các giới hạn được đặt ra dựa trên việc sử dụng tài nguyên CPU/RAM để đảm bảo độ ổn định.
 
@@ -269,7 +247,7 @@ Các giới hạn được đặt ra dựa trên việc sử dụng tài nguyên
 
 - **Mở rộng Cluster:** Việc tăng số lượng OSD trong cụm sẽ cải thiện độ ổn định và thông lượng của NVMe-oF Gateway, đặc biệt là giảm thiểu độ trễ.
 
-## Các Hướng Phát triển Hiệu suất trong Tương lai
+### Các Hướng Phát triển Hiệu suất trong Tương lai
 Các nỗ lực tập trung vào việc giảm thiểu chi phí xử lý và tối ưu hóa đường dẫn dữ liệu.
 
 - **Giảm Tài nguyên:**

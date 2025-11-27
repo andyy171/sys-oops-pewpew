@@ -1,11 +1,5 @@
-# Mục lục
-- [Mục lục](#mục-lục)
-- [Tổng quan](#tổng-quan)
-- [Cơ chế Replication](#cơ-chế-replication)
-- [Consistency Model](#consistency-model)
-- [Data Scrubbing](#data-scrubbing)
-
-# Tổng quan 
+# RADOS 
+## Tổng quan 
 - RADOS (Reliable Autonomic Distributed Object Store) là lớp lưu trữ cốt lõi và nền tảng của toàn bộ hệ thống Ceph Storage. RADOS cung cấp dịch vụ lưu trữ đối tượng phân tán, đáng tin cậy với khả năng tự quản trị và tự phục hồi. Tất cả các phương thức truy cập Ceph như RBD (RADOS Block Device), CephFS (File System), RADOSGW (Object Gateway) và librados đều được xây dựng trên RADOS layer.
 
 - RADOS là trung tâm của Ceph storage cluster, còn được gọi là Ceph Storage Cluster. Đây là một dịch vụ lưu trữ phân tán, hoạt động dựa trên các storage nodes thông minh có khả năng tự quản lý và tự phục hồi. RADOS không giao tiếp trực tiếp với client mà hoạt động như backend storage layer, nằm bên dưới các client interfaces.
@@ -37,7 +31,7 @@
         * **Object Structure:** Mỗi object bao gồm identifier, binary data và metadata
         * **Scalability:** Có thể quản lý hàng triệu đến hàng tỷ objects
 
-# Cơ chế Replication
+## Cơ chế Replication
 RADOS sử dụng primary-copy replication model bao gồm:
 - **Write Process:** 
     1. **Client Request:** Client gửi write request tới Primary OSD của PG
@@ -66,7 +60,7 @@ RADOS sử dụng primary-copy replication model bao gồm:
 [ Erasure Coding](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/06-Erasure%20Coding.md)
 
 
-# Consistency Model
+## Consistency Model
 - RADOS cung cấp strong consistency model, tuân theo CP principles trong CAP theorem:
 
     + Linearizable: Tất cả clients thấy cùng một view của data
@@ -81,4 +75,4 @@ RADOS sử dụng primary-copy replication model bao gồm:
     3. Chỉ acknowledge client sau khi nhận đủ ACKs từ min_size OSDs
     4. Sequence numbers đảm bảo thứ tự operations
     5. Short-term logs giúp recovery nhanh khi có intermittent failures
-# Data Scrubbing
+## Data Scrubbing

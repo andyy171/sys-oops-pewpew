@@ -1,9 +1,10 @@
-# Tổng quan
+
+## Tổng quan
 - Trong kiến trúc lưu trữ phân tán Ceph, việc đảm bảo dữ liệu không bị mất và luôn sẵn sàng truy cập là yêu cầu tối quan trọng. Hai khái niệm cốt lõi đạt được mục tiêu này là **Failure Domain** (Phân Vùng Lỗi) và **Storage Tiers** (Phân Cấp Lưu Trữ).
 - **Failure Domain** giúp Ceph hiểu về cấu trúc vật lý của cơ sở hạ tầng để phân phối dữ liệu sao cho khi một thành phần bị lỗi (disk, server, rack, thậm chí cả datacenter), dữ liệu vẫn có thể được truy cập từ các bản sao hoặc các mảnh dữ liệu còn lại trên các phân vùng lỗi khác. **Storage Tiers** cho phép tận dụng các loại thiết bị lưu trữ khác nhau **(HDD, SSD, NVMe)** để tối ưu hóa hiệu năng và chi phí.
 
 
-# Failure Domain (Phân Vùng Lỗi)
+## Failure Domain (Phân Vùng Lỗi)
 Failure Domain (FD) là bất kỳ thành phần nào trong cơ sở hạ tầng có thể gặp lỗi đồng thời và ảnh hưởng đến tất cả các thiết bị con bên trong nó. Hiểu đơn giản, Failure Domain là ranh giới mà khi một sự cố xảy ra (mất điện, hỏng phần cứng, lỗi mạng), tất cả các tài nguyên trong ranh giới đó sẽ không khả dụng cùng lúc.
 
 **Các cấp độ Failure Domain phổ biến**
@@ -27,7 +28,7 @@ Không khai báo đúng Failure Domain là một trong những sai lầm phổ b
 >**Nguyên tắc quan trọng:** Failure Domain phải được thiết lập ở cấp độ cao nhất mà cluster có thể chấp nhận mất mà vẫn duy trì dữ liệu khả dụng. Với cluster nhỏ (3-10 nodes), thường dùng `host` làm failure domain. Với cluster lớn hơn, nên dùng `rack` hoặc thậm chí `datacenter` cho stretch clusters.
 
 
-## Vai trò của Failure Domain trong CRUSH Map
+#### Vai trò của Failure Domain trong CRUSH Map
 CRUSH (Controlled Replication Under Scalable Hashing) là thuật toán độc đáo giúp Ceph xác định chính xác nơi lưu trữ và truy xuất dữ liệu mà không cần tra cứu bảng metadata tập trung. Đây là một trong những lý do chính khiến Ceph có khả năng mở rộng gần như vô hạn.
 
 Khi một client muốn đọc/ghi một object, thay vì hỏi một server trung tâm "object X nằm ở đâu?", client tự tính toán vị trí bằng cách:
@@ -35,7 +36,7 @@ Khi một client muốn đọc/ghi một object, thay vì hỏi một server tru
 2. Ánh xạ hash value vào một Placement Group (PG)
 3. Áp dụng CRUSH algorithm với CRUSH map để xác định tập OSDs chịu trách nhiệm cho PG đó
 
-## CRUSH Map và Failure Domain
+### CRUSH Map và Failure Domain
 CRUSH Map chứa ba thành phần chính:
 
 Devices: Danh sách các OSD (leaf nodes)
@@ -66,8 +67,8 @@ root default
 
 [**==> Kiến thức cần nắm về cây CRUSH**](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/03-CRUSH.md#crush-hierarchy)
 
-# Storage Tiers (Phân Cấp Lưu Trữ)
-## Device Class
+## Storage Tiers (Phân Cấp Lưu Trữ)
+### Device Class
 Trước đây (pre-Luminous), để tạo storage tiers, admin phải tạo nhiều CRUSH hierarchies song song (một tree cho HDDs, một tree cho SSDs) trong cùng một CRUSH map. Điều này phức tạp, dễ lỗi và khó bảo trì.
 
 Từ Luminous (12.2.x) trở đi, Ceph giới thiệu Device Class - một cách elegant hơn để phân loại OSDs theo loại phần cứng.
@@ -80,7 +81,7 @@ Từ Luminous (12.2.x) trở đi, Ceph giới thiệu Device Class - một cách
     + `ssd`: Solid State Drives (SATA/SAS SSD)
     + `nvme`: NVMe SSDs (PCIe SSD)
 
-### Auto-detection
+#### Auto-detection
 Khi một OSD daemon khởi động lần đầu, nó kiểm tra thiết bị vật lý (qua `/sys/block/<device>/queue/rotational`, SMART data, etc.) và tự động set device class:
 ```bash
 # Xem device class của các OSDs
@@ -96,7 +97,7 @@ ID  CLASS  WEIGHT   TYPE NAME       STATUS  REWEIGHT  PRI-AFF
  3    nvme  0.5000          osd.3     up    1.00000  1.00000
 ```
 
-### Manual Override
+#### Manual Override
 Đôi khi auto-detection không chính xác (ví dụ: VM sử dụng virtual disks), ta có thể set thủ công:
 
 ```bash
@@ -114,7 +115,7 @@ ceph osd crush set-device-class ssd osd.5
 ceph osd crush set-device-class nvme-ultra-fast osd.10
 ```
 
-### Shadow CRUSH Hierarchy
+#### Shadow CRUSH Hierarchy
 Khi device classes được sử dụng, Ceph tự động tạo "shadow hierarchy" cho mỗi class. Đây là các bản copy ảo của CRUSH tree, mỗi bản chỉ chứa OSDs của một class cụ thể.
 
 - Ví dụ, nếu có root `default`, Ceph tạo:
@@ -126,8 +127,8 @@ Khi device classes được sử dụng, Ceph tự động tạo "shadow hierarc
 > User không cần (và không nên) tạo/quản lý shadow trees này thủ công. Chúng được quản lý tự động bởi Ceph.
 
 
-## Áp dụng Storage Tiers bằng Device Class
-### Tạo Pools cho các Tiers khác nhau
+### Áp dụng Storage Tiers bằng Device Class
+#### Tạo Pools cho các Tiers khác nhau
 
 Giả sử ta muốn:
 
@@ -196,10 +197,10 @@ radosgw-admin zone placement modify \
 ```
 => **Lợi ích:** Với k=8, m=3, overhead chỉ là 37.5% (so với 200% của replication size=3), tiết kiệm được 62.5% dung lượng!
 
-## Mixed Device Classes trong cùng một Pool
+### Mixed Device Classes trong cùng một Pool
 Một use case thú vị là kết hợp nhiều device classes trong cùng một CRUSH rule để tối ưu performance và cost.
 
-### Primary OSD trên SSD, Replicas trên HDD
+#### Primary OSD trên SSD, Replicas trên HDD
 Đối với workloads write-heavy, ta có thể đặt primary replica trên SSD (để ghi nhanh) và secondary replicas trên HDD:
 
 ```bash
@@ -242,7 +243,7 @@ ceph osd pool set mixed_pool size 3
     + Dùng pure HDD pools cho cold data
     + Dùng tiering/replication giữa pools (nếu cần)
 
-##  BlueStore và vai trò trong Storage Tiers
+###  BlueStore và vai trò trong Storage Tiers
 Từ Luminous, BlueStore là storage backend mặc định, thay thế FileStore legacy. BlueStore viết trực tiếp lên raw block device, không qua filesystem trung gian (như XFS trong FileStore).
 
 **Kiến trúc BlueStore**
@@ -271,7 +272,7 @@ Từ Luminous, BlueStore là storage backend mặc định, thay thế FileStore
 - **block.db:** Chứa RocksDB database (metadata: object names, checksums, allocation map). Rất IOPS-intensive, nên đặt trên SSD/NVMe
 - **block.wal:** Write-Ahead Log, chứa journal của transactions. Write-intensive, tốt nhất là NVMe
 
-### BlueStore Tiering Strategy
+#### BlueStore Tiering Strategy
 Best practice cho production:
 
 Scenario 1: All-HDD (budget constraint)
@@ -328,7 +329,7 @@ ceph-volume lvm create --data /dev/nvme0n1
 >    + Nếu cần hot/cold separation: Dùng separate pools (hot pool = all-SSD, cold pool = HDD+SSD hybrid) và di chuyển data giữa pools bằng application logic 
  
 
-## Cache Tiering (Legacy) - Tại sao không còn được khuyến nghị
+### Cache Tiering (Legacy) - Tại sao không còn được khuyến nghị
 
 Cache Tiering được giới thiệu từ Firefly (0.80), cho phép tạo một "cache pool" (thường là SSD) phía trước một "backing pool" (thường là HDD). 
 
@@ -376,7 +377,7 @@ ceph osd pool set hot_pool cache_target_full_ratio 0.8
 4. **Agent overhead:** Cache tier agent chạy trên MON, tiêu tốn CPU/RAM
 5. **Difficult troubleshooting:** Khi có vấn đề, rất khó debug (log phức tạp, state machine phức tạp)
 
-### Migration từ Cache Tiering sang Device Class
+#### Migration từ Cache Tiering sang Device Class
 Nếu đang dùng cache tiering và muốn migrate:
 ```bash
 # Bước 1: Set cache mode sang forward (stop promoting)
@@ -401,8 +402,8 @@ ceph osd pool delete cold_pool cold_pool --yes-i-really-really-mean-it
 > **Thời gian downtime:** Có thể từ vài giờ đến vài ngày tùy data size. Cần lập kế hoạch cẩn thận.
 
 
-# Best Practices và Khuyến nghị
-##  Thiết kế Failure Domain
+## Best Practices và Khuyến nghị
+###  Thiết kế Failure Domain
 
 Quy tắc chọn Failure Domain
 
@@ -443,7 +444,7 @@ Cluster size < 3 nodes?
 ```
 
 
-### Stretch Clusters (Multi-site)
+#### Stretch Clusters (Multi-site)
 Đặc biệt với stretch clusters (cụm trải qua nhiều DC), cần:
 
 - **3 sites:** 2 sites chính + 1 arbitrator site (chỉ chứa MON, không chứa data)
@@ -451,7 +452,7 @@ Cluster size < 3 nodes?
 - Failure domain = datacenter
 - `min_size` phải được set cẩn thận để tránh *split-brain*
 
-## Device Class Best Practices
+### Device Class Best Practices
 1. Luôn verify device class sau khi deploy OSDs
 ```bash
 # Sau khi deploy, check ngay
@@ -485,7 +486,7 @@ node2       26-27        nvme            2x Samsung 983 960GB
 [CRUSH Map Management](/08-storage-and-distributed-systems/02-Ceph-Storage/02-operations/03-Cluster-Operations.md#crush-map-management)
 
 
-##  Monitoring và Alerting
+###  Monitoring và Alerting
 
 - Key metrics for failure domains
 
@@ -523,9 +524,9 @@ groups:
 
 ```
 
-# Troubleshooting Common Issues
+## Troubleshooting Common Issues
 
-## "Insufficient replicas" / "Inconsistent" PGs
+### "Insufficient replicas" / "Inconsistent" PGs
 **Dấu hiệu :**
 ```bash
 ceph health detail
@@ -546,7 +547,7 @@ ceph osd pool set <pool> crush_rule new_rule
 # Option 3: Add more racks (đúng hướng)
 ```
 
-## OSDs với device class sai
+### OSDs với device class sai
 **Dấu hiệu :** Pool dùng rule ssd nhưng performance vẫn chậm như HDD.
 ```bash
 ceph osd tree
@@ -567,7 +568,7 @@ ceph osd crush set-device-class ssd osd.X
 ceph osd tree | grep osd.X
 ```
 
-## CRUSH map corruption
+### CRUSH map corruption
 **Dấu hiệu :** Cluster không thể start MON, hoặc PGs endless "`activating`".
 ```bash
 ceph osd getcrushmap -o /tmp/current.bin
@@ -592,7 +593,7 @@ crushtool -i /tmp/fixed.bin --test --show-mappings --num-rep 3
 ceph osd setcrushmap -i /tmp/fixed.bin
 ```
 
-## Rebalancing không kết thúc 
+### Rebalancing không kết thúc 
 **Dấu hiệu :** Sau khi thay đổi CRUSH, cluster rebalance hoài không xong, PG count misplaced cao.
 ```bash
 ceph -w  # Observe recovery rate

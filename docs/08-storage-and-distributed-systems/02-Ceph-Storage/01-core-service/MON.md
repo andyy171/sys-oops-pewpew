@@ -1,19 +1,14 @@
-
-
-
-
-MON (Monitor)
+# MON 
 - Theo dõi trạng thái cluster, duy trì cluster map (bản đồ vị trí dữ liệu).
 - Nhóm MON (3-5 node) dùng Paxos để đồng bộ
 
-# Paxos consensus algorithm 
+## Paxos consensus algorithm 
 - **Paxos**: Thuật toán đồng thuận để MON/MGR/MDS thống nhất trạng thái (như OSD up/down).
     
-    **Cơ chế vận hành**: Leader đề xuất, node vote; chịu lỗi nếu <50% hỏng. Phiên bản mới dùng Raft đơn giản hơn.
+    **Cơ chế vận hành**: Leader đề xuất, node vote; chịu lỗi nếu <50% hỏng.
     
     **Ví dụ**: Như bỏ phiếu bầu chủ tịch, cần đa số đồng ý.
     
-
 # Monitor quorum 
 - **Quorum**: Số node tối thiểu để đưa ra quyết định hợp lệ (thường >50%).
     
@@ -21,10 +16,7 @@ MON (Monitor)
     
     **Ví dụ**: Như tòa án cần đa số thẩm phán để phán quyết.
 
-
-
 # Monitor synchronization
-
 
 
 # Election process
