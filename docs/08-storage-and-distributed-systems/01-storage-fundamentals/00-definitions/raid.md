@@ -1,4 +1,4 @@
-# RAID
+#  —  RAID
 ## Khái niệm 
 - RAID (Redundant Arrays of Inexpensive Disks) là hình thức ghép nhiều ổ đĩa cứng vật lý thành một hệ thống ổ đĩa cứng có các chức năng gia tăng tốc độ đọc/ghi dữ liệu hoặc nhằm tăng thêm sự an toàn của dữ liệu chứa trên hệ thống
 ## Hoạt động của RAID trong Linux
