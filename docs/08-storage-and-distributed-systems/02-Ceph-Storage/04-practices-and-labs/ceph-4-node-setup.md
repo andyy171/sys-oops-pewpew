@@ -59,6 +59,27 @@ network:
         addresses: [8.8.8.8, 1.1.1.1]
 EOF
 
+cat << EOF | sudo tee /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens33:                  
+      addresses:
+        - 192.168.198.165/24  
+      routes:
+        - to: default
+          via: 192.168.198.2   
+      nameservers:
+        addresses:
+          - 8.8.8.8
+      dhcp4: false            
+
+    ens37:                  
+      dhcp4: false
+      optional: true
+EOF
+
 sudo chmod 600 /etc/netplan/01-netcfg.yaml
 sudo netplan apply
 

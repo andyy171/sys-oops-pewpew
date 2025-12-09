@@ -45,7 +45,7 @@ Khi xảy ra lỗi disk, Ceph OSD daemon tự động kích hoạt quy trình re
 
 ## Scrubbing (shallow & deep)
 
-## Recovery vs Backfill
+
 
 
 ## Cấu hình OSD

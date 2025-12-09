@@ -1,4 +1,5 @@
-# Tổng quan
+# BlueStore 
+## Tổng quan
 - BlueStore là backend lưu trữ mặc định cho Ceph OSD kể từ bản Luminous (Ceph 12.2.z). Đây là động cơ lưu trữ ở không gian người dùng, quản lý dữ liệu trực tiếp trên thiết bị khối thô mà không cần hệ thống tệp trung gian. Cách tiếp cận này khắc phục hạn chế của FileStore cũ, như chi phí hiệu suất từ lớp trừu tượng hóa hệ thống tệp và phạt viết kép. 
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/bluestore-2.png)
@@ -6,25 +7,25 @@
 - BlueStore tích hợp RocksDB để quản lý metadata, hỗ trợ nén inline và kiểm tra checksum cho tính toàn vẹn dữ liệu, đồng thời cho phép cấu hình đa thiết bị để lưu trữ phân tầng (ví dụ: HDD cho dữ liệu, SSD cho metadata). Nó được tối ưu hóa cho khối lượng công việc hiện đại, bao gồm lưu trữ khối, đối tượng và tệp, với tính năng như copy-on-write cho snapshot và pool mã hóa xóa. 
 - BlueStore là backend khuyến nghị trong môi trường sản xuất bởi các nhà cung cấp như Red Hat và IBM, với FileStore đã bị loại bỏ ở các bản mới (ví dụ: Ceph Reef).
 
-## Lý do cần BlueStore
+### Lý do cần BlueStore
 FileStore cũ của Ceph dựa vào hệ thống tệp POSIX (như XFS, EXT4, Btrfs), dẫn đến thách thức tương thích, gánh nặng hiệu suất và vấn đề đáng tin cậy. BlueStore được phát triển để vượt qua bằng cách quản lý thiết bị thô trực tiếp, đơn giản hóa đường dẫn I/O và tối ưu cho lưu trữ hiện đại như SSD và NVMe.
 
 
-### **Vấn đề của FileStore**
+#### **Vấn đề của FileStore**
 - **Tương thích và Hack:** Cần hỗ trợ nhiều hệ thống tệp Linux, mỗi cái có hành vi không chuẩn (ví dụ: rename không idempotent), đòi hỏi workaround tùy chỉnh, tăng độ phức tạp phát triển.
 - **Chi phí Hiệu suất:** Các tính năng POSIX không cần thiết cho Ceph (như duyệt thư mục nâng cao) thêm overhead. Hệ thống tệp áp đặt journaling riêng, dẫn đến "viết kép" – dữ liệu viết hai lần (journal của Ceph và của hệ thống tệp) – giảm một nửa thông lượng.
 - **Không tối ưu cho Phần cứng Hiện đại:** Thiếu tối ưu hóa cho song song SSD/NVMe và CPU đa lõi. Sử dụng LevelDB (sau là RocksDB) cho metadata nhưng vẫn chịu indirection hệ thống tệp, gây tranh chấp queue và giảm hiệu quả.
 - **Phóng đại Viết:** Overwrite đòi hỏi journaling cho ACID, phóng đại viết. Với LSM-tree như RocksDB, WAL riêng là thừa vì dữ liệu đã cấu trúc log.
 
-### **Lợi ích của BlueStore BlueStore**
+#### **Lợi ích của BlueStore BlueStore**
 BlueStore loại bỏ lớp hệ thống tệp, quản lý thiết bị qua allocator và dùng RocksDB cho metadata. Điều này giảm một nửa phóng đại viết, tận dụng song song SSD, và hỗ trợ phân tầng thiết bị linh hoạt (ví dụ: NVM cho WAL). Nó cũng cung cấp checksum dữ liệu đầy đủ và nén, bị hạn chế ở FileStore.
 
-# Kiến trúc Tổng thể của BlueStore
+## Kiến trúc Tổng thể của BlueStore
 BlueStore chia lưu trữ thành các module logic, quản lý thiết bị khối thô qua các thành phần tùy chỉnh. Ưu tiên đường dẫn viết ngắn để hiệu suất, dùng ngữ nghĩa append-only khi có thể. Dữ liệu lưu trực tiếp trên thiết bị, trong khi metadata (như mapping đối tượng) ở RocksDB, giao tiếp qua BlueFS – hệ thống tệp tối thiểu dành cho RocksDB.
 
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/bluestore-1.png)
 
-## Các Thành phần Chính
+### Các Thành phần Chính
 
 - RocksDB
    + là kho `key-value` hiệu suất cao nhúng trong BlueStore để quản lý metadata, bao gồm metadata đối tượng, OMAP Ceph, WAL và trạng thái allocator. 
@@ -51,7 +52,7 @@ BlueStore chia lưu trữ thành các module logic, quản lý thiết bị kh�
 
 > Cấu hình cho phép phân tầng cho media hỗn hợp, như HDD chính với SSD DB/WAL.
 
-# Quản lý Metadata
+## Quản lý Metadata
 Metadata lưu trong RocksDB dưới dạng cặp key-value. Đối tượng đại diện bởi Onodes (tương tự inode), chứa logical extent (lextents) map đến blob. Blob tham chiếu physical extent (pextents) trên đĩa. Với snapshot, Bnodes cho phép chia sẻ dữ liệu qua copy-on-write. Tất cả sửa đổi là transaction trong RocksDB, với sharding (từ Pacific) chia dữ liệu thành column family cho cache và compaction tốt hơn.
 
 - BlueStore tối ưu viết để tránh viết kép:

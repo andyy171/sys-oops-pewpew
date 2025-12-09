@@ -1,14 +1,4 @@
-# Mục lục
-- [Mục lục](#mục-lục)
-- [Overview](#overview)
-- [MGR modules system](#mgr-modules-system)
-- [Built-in modules (balancer, dashboard, prometheus, etc.)](#built-in-modules-balancer-dashboard-prometheus-etc)
-- [Active/standby MGR](#activestandby-mgr)
-- [RESTful API endpoint](#restful-api-endpoint)
-
-
-
-# Overview
+# MGR
 
 
 MGR (Manager)

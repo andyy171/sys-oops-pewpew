@@ -536,3 +536,12 @@ find ${BACKUP_DIR} -name "*.export.gz" -mtime +7 -delete
 
 echo "Backup completed!"
 ```
+
+
+## Cơ chế khóa trong Ceph 
+Cơ chế khóa trong Ceph hoạt động như thế nào?
+Kiến trúc phân tán: Ceph phân phối dữ liệu trên nhiều máy chủ, cho phép nhiều máy khách truy cập cùng một lúc. Tuy nhiên, để duy trì tính toàn vẹn dữ liệu, Ceph cần một cơ chế để điều phối các thao tác ghi và đọc.
+Phân phối dữ liệu: Dữ liệu trong Ceph được phân phối dưới dạng các đối tượng (object), khối (block) hoặc tệp (file) trên một cụm máy chủ (cluster).
+Quản lý quyền truy cập: Khi một client muốn ghi vào một đối tượng, nó phải yêu cầu một "khóa" cho đối tượng đó. Nếu có nhiều client yêu cầu cùng một đối tượng, Ceph sẽ quản lý các yêu cầu này theo một thứ tự nhất định.
+Tính nhất quán: Cơ chế khóa giúp đảm bảo rằng chỉ một client có thể ghi vào một đối tượng tại một thời điểm nhất định, ngăn chặn tình trạng "ghi đè" dữ liệu và đảm bảo dữ liệu luôn ở trạng thái nhất quán.
+Bảo mật và độ tin cậy: Ngoài việc đảm bảo tính nhất quán, cơ chế khóa còn giúp bảo vệ dữ liệu khỏi truy cập trái phép hoặc lỗi do xung đột đồng thời. 
