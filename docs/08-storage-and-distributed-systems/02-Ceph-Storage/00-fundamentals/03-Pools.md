@@ -1,4 +1,4 @@
-
+# Pools 
 - Pool là phân vùng logic để lưu trữ objects trong Ceph cluster. Bạn có thể hiểu Pool giống như một "container" hay "bucket" lớn chứa dữ liệu.
 
 - **Tại sao cần Pools?**

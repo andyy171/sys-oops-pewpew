@@ -75,4 +75,3 @@ RADOS sử dụng primary-copy replication model bao gồm:
     3. Chỉ acknowledge client sau khi nhận đủ ACKs từ min_size OSDs
     4. Sequence numbers đảm bảo thứ tự operations
     5. Short-term logs giúp recovery nhanh khi có intermittent failures
-## Data Scrubbing

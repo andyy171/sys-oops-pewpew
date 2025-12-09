@@ -1,7 +1,6 @@
 # Tổng quan 
 
-
-# Health monitoring
+## Health monitoring
 Các lệnh này được sử dụng rộng rãi và không thay đổi:
 
 Kiểm tra sức khỏe cụm:

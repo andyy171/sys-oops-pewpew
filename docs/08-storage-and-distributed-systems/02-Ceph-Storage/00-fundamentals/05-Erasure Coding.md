@@ -1,4 +1,4 @@
-
+# Cơ chế Erasure Coding 
 ### Tổng quan
 Ceph đảm bảo độ bền và khả dụng của dữ liệu thông qua 2 kỹ thuật chính là **Erasure Coding** ( Data + parity) và **Replication** ( Full copies of data )
 

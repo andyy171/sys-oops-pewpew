@@ -1,4 +1,4 @@
-# - Lý Thuyết Ứng Dụng 12 Yếu Tố (The Twelve-Factor App)
+# — Lý Thuyết Ứng Dụng 12 Yếu Tố (The Twelve-Factor App)
 
 ## Tổng Quan
 

@@ -1,12 +1,5 @@
-# Mục lục
-
-- [Cài Đặt Root Certificates trên Hệ Thống Dùng `update-ca-certificates`](#cài-đặt-root-certificates-trên-hệ-thống-dùng-update-ca-certificates)
-- [Cài Đặt Root Certificates trên Hệ Thống Dùng `update-ca-trust`](#cài-đặt-root-certificates-trên-hệ-thống-dùng-update-ca-trust)
-- [Cài Đặt Root Certificates trên Trình duyệt Chrome (Linux)](#cài-đặt-root-certificates-trên-trình-duyệt-chrome-linux)
-
->Việc cài đặt Root Certificates (Chứng chỉ gốc) là cần thiết để hệ thống của bạn tin tưởng các chứng chỉ SSL/TLS được cấp bởi CA (Certificate Authority) đó, đặc biệt là các CA nội bộ (corporate CA) hoặc CA bên thứ ba không có trong danh sách mặc định.
-
-# Cài Đặt Root Certificates trên Hệ Thống Dùng `update-ca-certificates`
+# Thực hành cài đặt Root Certificates
+## Cài Đặt Root Certificates trên Hệ Thống Dùng `update-ca-certificates`
 
 Nhóm hệ điều hành này bao gồm SUSE Linux Enterprise Server (SLES) và Debian/Ubuntu cùng các phiên bản phái sinh.
 
@@ -69,7 +62,7 @@ sudo update-ca-certificates
 ![](/01-linux/images/user-and-group-management/Linux_Certs017.png)
 
 
-# Cài Đặt Root Certificates trên Hệ Thống Dùng update-ca-trust
+## Cài Đặt Root Certificates trên Hệ Thống Dùng update-ca-trust
 Nhóm hệ điều hành này bao gồm **Red Hat Linux Enterprise (RHEL)**, **Oracle Linux**, **CentOS**, **Fedora**cùng các phiên bản phái sinh (hiện đại).
 
 1. **Sao chép Certificate vào Thư mục Phù hợp:**
@@ -113,7 +106,7 @@ sudo update-ca-trust
 ![](/01-linux/images/user-and-group-management/rhel_root_ca_05.png)
 
 ![](/01-linux/images/user-and-group-management/rhel_root_ca_06.png)
-# Cài Đặt Root Certificates trên Trình duyệt Chrome (Linux)
+## Cài Đặt Root Certificates trên Trình duyệt Chrome (Linux)
 
 Đối với Chrome trên Linux, trình duyệt này thường sử dụng kho chứng chỉ riêng của mình thay vì dựa hoàn toàn vào kho chứng chỉ của hệ điều hành.
 ![](/01-linux/images/user-and-group-management/Linux_Certs008.png)

@@ -125,8 +125,6 @@ Latency Hierarchy: RAM < SSD < HDD < Tape
 ### 6.1. Durability models (replication vs EC)
 
 
-### 6.2. Data scrubbing, repair, self-healing
-
 
 ### 6.3. Consistency check (fsck-like tools)
 

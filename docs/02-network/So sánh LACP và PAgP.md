@@ -21,7 +21,7 @@ Bài viết này so sánh chi tiết LACP và PAgP, phân tích ưu/nhược đi
 + Tính tương thích: Độc quyền, chỉ hoạt động trên thiết bị Cisco hoặc thiết bị hỗ trợ Cisco-like. 
 + Chế độ hoạt động:  Desirable: Chủ động gửi bản tin PAgP để thương lượng. 
 + Auto: Bị động, chỉ tham gia khi nhận bản tin từ phía đối diện.
-<img src ="/images/lacp-pagp.jpg">
+![](/docs/02-network/images/lacp-pagp.jpg)
 3. So sánh chi tiết LACP vs PAgP  
 
 Dưới đây là bảng so sánh giữa LACP và PAgP được định dạng trong Markdown:

@@ -1,14 +1,5 @@
-# Mục lục
 
-- [Tạo Một Phân Vùng Mới](#tạo-một-phân-vùng-mới)
-    - [Kiểm tra và Chuẩn bị Ổ đĩa](#kiểm-tra-và-chuẩn-bị-ổ-đĩa)
-    - [Tạo Phân vùng và Hệ thống tệp (Filesystem)](#tạo-phân-vùng-và-hệ-thống-tệp-filesystem)
-- [Di chuyển thư mục Home](#di-chuyển-thư-mục-home)
-
-- [Phân biệt Các loại Phân vùng (MBR vs GPT)](#phân-biệt-các-loại-phân-vùng-mbr-vs-gpt)
-
----
-
+# Di chuyển thử mục Home sang phân vùng chuyên dụng trong Linux 
 Việc di chuyển thư mục Home của người dùng sang một ổ đĩa hoặc phân vùng riêng biệt( dedicated drive/partition) giúp tăng tính bảo mật, dễ dàng nâng cấp hệ điều hành và quản lý dung lượng tốt hơn.
 
 Quá trình này được chia thành hai phần chính: **Tạo Phân vùng mới (nếu chưa có)** và **Di chuyển thư mục Home.**
@@ -22,7 +13,7 @@ Sử dụng lệnh `parted -l` để liệt kê tất cả các thiết bị lư
 ```
 parted -l
 ```
-![](/01-linux/images/practices/ubuntu_partition001.png)
+![](./images/ubuntu_partition001.png)
 
 > Lưu ý: Tên thiết bị như `/dev/sda` hoặc `/dev/sdb` có thể thay đổi ngẫu nhiên sau mỗi lần khởi động. Sự thay đổi này xảy ra do hệ thống có nhiều bộ điều khiển đĩa (IDE, SCSI/SATA) hoặc thiết bị lưu trữ gắn ngoài (USB/Firewire) được phát hiện theo thứ tự không xác định.
 > Việc sử dụng **Persistent Naming (Đặt tên bền vững)** thông qua **UUID (Universally Unique Identifier)** hoặc **Labels** là cần thiết để khắc phục vấn đề này và đảm bảo hệ thống luôn gắn đúng phân vùng.
@@ -68,7 +59,7 @@ Mô tả: Lệnh này chỉ tạo một phân vùng mới và chuẩn bị nó c
 ```
 mkfs.ext4 /dev/sdb1
 ```
-![](/01-linux/images/practices/ubuntu_partition002.png)
+![](./images/ubuntu_partition002.png)
 3. Gắn tạm thời (Mount) Phân vùng mới:
 
 - Tạo thư mục làm điểm gắn kết (mount point): 
@@ -76,26 +67,26 @@ mkfs.ext4 /dev/sdb1
 mkdir /media/home
 ```
 - **Xác định UUID** của phân vùng mới bằng lện `blkid`
-![](/01-linux/images/practices/ubuntu_partition004.png)
+![](./images/ubuntu_partition004.png)
 - Chỉnh sửa tệp `/etc/fstab` để thêm thông tin phân vùng, sử dụng UUID để đảm bảo việc gắn kết là cố định:
 ```
 UUID=<UUID_của_phân_vùng>  /media/home ext4 defaults 0 0
 ```
-![](/01-linux/images/practices/ubuntu_partition003.png)
+![](./images/ubuntu_partition003.png)
 - Gắn kết ngay lập tức mà không cần khởi động lại:  `mount -a`
 
 - Kiểm tra phân vùng đã được gắn vào` /media/home` chưa bằng lệnh `df -h` hoặc  `lsblk`
 
 + `df -h`
-![](/01-linux/images/practices/ubuntu_partition007.png)
+![](./images/ubuntu_partition007.png)
 + `lsblk`: Hiển thị danh sách các thiết bị khối (block devices) và điểm gắn kết (mount points). Các thiết bị khối có đặc điểm là truy cập dữ liệu ngẫu nhiên, tổ chức theo các khối kích thước cố định (ổ cứng, CD-ROM, RAM disk, v.v.).
-![](/01-linux/images/practices/ubuntu_partition005.png)
+![](./images/ubuntu_partition005.png)
 + pydf
-![](/01-linux/images/practices/ubuntu_partition006.png)
+![](./images/ubuntu_partition006.png)
 + `findmnt`: Liệt kê tất cả các hệ thống tệp đã được gắn hoặc tìm kiếm một filesystem cụ thể. Lệnh này tìm kiếm trong `/etc/fstab`, `/etc/mtab`, hoặc `/proc/self/`mountinfo.
-![](/01-linux/images/practices/ubuntu_partition008.png)
+![](./images/ubuntu_partition008.png)
 + `/proc/mounts`: Tệp giả lập (pseudo-file) trong hệ thống tệp tiến trình (`/proc`) chứa thông tin về tất cả các thiết bị hiện đang được gắn trên hệ thống.
-![](/01-linux/images/practices/ubuntu_partition009.png)
+![](./images/ubuntu_partition009.png)
 ---
 # Di Chuyển Thư Mục Home
 Sau khi phân vùng mới được tạo và gắn tạm thời tại `/media/home`, chúng ta tiến hành di chuyển dữ liệu.
@@ -132,9 +123,9 @@ mkdir /home
 3. Cập nhật `/etc/fstab` và Gắn kết Cuối cùng:
 
 - Chỉnh sửa lại tệp `/etc/fstab`.
-![](/01-linux/images/practices/ubuntu_partition010.png)
+![](./images/ubuntu_partition010.png)
 - Thay đổi điểm gắn kết (mount point) của phân vùng mới từ `/media/home` thành `/home.`
-![](/01-linux/images/practices/ubuntu_partition011.png)
+![](./images/ubuntu_partition011.png)
 + Trước: `UUID=... /media/home ext4 defaults 0 0`
 
 + Sau: `UUID=... /home ext4 defaults 0 0`

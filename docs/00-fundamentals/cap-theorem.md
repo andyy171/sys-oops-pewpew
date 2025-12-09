@@ -1,4 +1,4 @@
-# - Định lý CAP
+# — Định lý CAP
 **CAP Theorem** (Định lý CAP) là nguyên lý quan trọng trong thiết kế **hệ thống phân tán**. Nó cho biết trong một hệ thống phân tán, **không thể đồng thời đảm bảo hoàn hảo** cả ba tính chất:
 - **Consistency (Nhất quán)**
 - **Availability (Sẵn sàng)**

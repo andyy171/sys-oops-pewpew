@@ -1,4 +1,4 @@
-
+# Failure Domain và Storage Tiers
 ## Tổng quan
 - Trong kiến trúc lưu trữ phân tán Ceph, việc đảm bảo dữ liệu không bị mất và luôn sẵn sàng truy cập là yêu cầu tối quan trọng. Hai khái niệm cốt lõi đạt được mục tiêu này là **Failure Domain** (Phân Vùng Lỗi) và **Storage Tiers** (Phân Cấp Lưu Trữ).
 - **Failure Domain** giúp Ceph hiểu về cấu trúc vật lý của cơ sở hạ tầng để phân phối dữ liệu sao cho khi một thành phần bị lỗi (disk, server, rack, thậm chí cả datacenter), dữ liệu vẫn có thể được truy cập từ các bản sao hoặc các mảnh dữ liệu còn lại trên các phân vùng lỗi khác. **Storage Tiers** cho phép tận dụng các loại thiết bị lưu trữ khác nhau **(HDD, SSD, NVMe)** để tối ưu hóa hiệu năng và chi phí.

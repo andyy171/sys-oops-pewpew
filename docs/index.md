@@ -7,7 +7,7 @@ Tổng hợp ghi chú về System Engineering, DevOps và Kiến trúc hệ th�
 ## 🟢 Phần 1: Kiến thức Cơ bản (Foundation)
 *Nền móng vững chắc cho System Admin & DevOps.*
 
-* **[00. Kiến thức nền tảng (Fundamentals)](./00-fundamentals/)**
+* **[00. Kiến thức nền tảng (Fundamentals)](./00-fundamentals/.pages)**
     * Các khái niệm nhập môn cần biết trước khi bắt đầu.
 * **[01. Hệ điều hành Linux](./01-linux/)**
     * Làm chủ dòng lệnh, quản lý process, user và permission.
