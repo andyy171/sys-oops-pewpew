@@ -135,7 +135,7 @@ kolla-ansible post-deploy -i ./all-in-one
 
 ## 8. OpenStack client + init
 
-pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2024.1
+pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2024.2
 
 
 ### Lấy tài khoản mật khẩu đăng nhập và kiểm tra dịch vụ Openstack
