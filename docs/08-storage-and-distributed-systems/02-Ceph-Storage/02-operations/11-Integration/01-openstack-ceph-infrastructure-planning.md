@@ -70,7 +70,10 @@ Ví dụ thực tế:
 > Lưu ý về Write Penalty : Ceph là hệ thống Strong Consistency. Khi Client ghi dữ liệu, Ceph phải ghi thành công vào Primary OSD và tất cả Replica OSDs rồi mới báo về Client.
 - Con số 12,500 IOPS ở trên là mức mà các VM "nhìn thấy". Tuy nhiên, thực tế Ceph phải làm việc nhiều hơn thế vì cơ chế bảo vệ dữ liệu:
 
-    $$\text{IOPS}_{Backend} =  \text{IOPS} _{Read}+ \text{Write IOPS} \times \text{Replica} $$
+$$
+IOPS_{Backend} = IOPS_{Read} + IOPS_{Write} \times Replica
+$$
+
 
     - Replicated Mode (3x): Mỗi lệnh Write từ VM sẽ biến thành 3 lệnh Write dưới ổ đĩa.
     - EC Mode: Tệ hơn đối với IOPS ghi vì phải đọc mảnh cũ, tính toán Parity rồi mới ghi mảnh mới.
@@ -78,34 +81,62 @@ Ví dụ thực tế:
 
 - Công thức Write IOPS theo Mirantis :
 
-$\text{Write IOPS} = \frac{Device\ IOPS \times số Devices \times 0.65}{ cluster size}$ (0.65 là hệ số overhead, là đại diện cho phần dư ra của hiệu suất dự phòng cho các tác vụ không phải compute chính, có thể tùy chỉnh nhưng khuyến nghị không <0.6 và >0.75)
+$$
+\text{Write IOPS} = \frac{Device\ IOPS \times số Devices \times 0.65}{ cluster size}$$
+
+(0.65 là hệ số overhead, là đại diện cho phần dư ra của hiệu suất dự phòng cho các tác vụ không phải compute chính, có thể tùy chỉnh nhưng khuyến nghị không <0.6 và >0.75)
 
 ### 1.4. Quy trình tính toán Sizing
-1. **Xác định nhu cầu Frontend IOPS** - IOPS mà ứng dụng/VM “nhìn thấy” và “yêu cầu”
 
-$ \text{Total IOPS}_{Front} = Σ (VM_{Count}  \times IOPS_{Profile})$
+1. **Xác định nhu cầu Frontend IOPS**  
+   IOPS mà ứng dụng/VM nhìn thấy và yêu cầu
 
-2. **Xác định tỷ lệ Read/Write**
+   $$
+   IOPS_{Front}
+   =
+   \sum (VM_{Count} \times IOPS_{Profile})
+   $$
 
-$$ 
-\text{IOPS}_{Read} = \text{Total IOPS}_{Front} \times \text{Read\ Ratio}
-\text{IOPS}_{Write} = \text{Total IOPS}_{Front} \times \text{Write\ Ratio}
-$$
-**Ví dụ :** 70% Read 30% Write
+2. **Xác định tỷ lệ Read / Write**
 
-3. **Tính Backend IOPS cần xử lý** - IOPS thực tế mà các disk/OSD phải xử lý
+   $$
+   IOPS_{Read}
+   =
+   IOPS_{Front} \times ReadRatio
+   $$
 
-$$ 
-\text{IOPS}_{Back} = (\text{Total}_{Front} + \text{Read\ Percent}) + (\text{Total}_{Front} \times \text{Write Percent} \times Replica )
-$$
+   $$
+   IOPS_{Write}
+   =
+   IOPS_{Front} \times WriteRatio
+   $$
+
+   **Ví dụ:** 70% Read, 30% Write
+
+3. **Tính Backend IOPS cần xử lý**  
+   IOPS thực tế mà các disk / OSD phải xử lý
+
+   $$
+   IOPS_{Back}
+   =
+   IOPS_{Read}
+   +
+   (IOPS_{Write} \times Replica)
+   $$
 
 4. **Tính số lượng OSD cần thiết**
 
-$$
-\text{OSD}_{\text{Count}} = \frac{\text{IOPS}_{Back}}{\text{IOPS}_{trên\ mỗi\ OSD\ thực\ tế}} \times 1.25
-$$
+   $$
+   OSD_{Count}
+   =
+   \frac{IOPS_{Back}}{IOPS_{perOSD}}
+   \times
+   1.25
+   $$
 
-> 1.25 = 25 % Headroom (recovery, burst) , con số khuyến nghị thường ở mức 30-50%
+   > **Giải thích:**  
+   > 1.25 tương đương với 25% headroom (recovery, burst).  
+   > Trong thực tế production, mức khuyến nghị thường là 30–50%.
 
 **Ví dụ :** 
 ```
@@ -183,9 +214,22 @@ $$RAM_{Cần thiết} \approx RAM_{Hệ thống} + (Số\ lượng\ {OSD} \times
 
 **Công thức :**
 
-$ \text{RAM}_{Node} = \text{4GB (OS)} + \text{OSD}_{Count} \times 8GB + \text{4GB (MON/MGR)} + \text{Buffer} $
+$$
+RAM_{Node}
+=
+4
++
+(OSD_{Count} \times 8)
++
+4
++
+Buffer
+$$
 
-$ \text{Buffer} = \text{OSD}_{Count} \times 2GB $ (recovery spike protection)
+
+$$
+\text{Buffer} = \text{OSD}_{\text{Count}} \times 2\,\text{GB} \quad \text{(recovery spike protection)}
+$$
 
 - Một ví dụ về ước lượng RAM :
 ```
@@ -205,7 +249,14 @@ RAM = 4 + (12×5) + 4 + (12×2)
 - Ceph sử dụng CPU để tính toán checksum (đảm bảo an toàn dữ liệu), nén dữ liệu (compression) và quản lý luồng dữ liệu.
 - Công thức ước tính:
 
-$$CPU_{Mỗi\ Node} \approx {CPU Cần thiết}_{MON/MGR} + (Số\ lượng_{OSD} \times Số Core_{mỗi\ OSD})$$
+$$
+CPU_{Node}
+\approx
+CPU_{MONMGR}
++
+(N_{OSD} \times CPU_{perOSD})
+$$
+
 
 - Trong đó :
     - MON / MGR : 1 -2 Core 
@@ -222,7 +273,10 @@ $$CPU_{Mỗi\ Node} \approx {CPU Cần thiết}_{MON/MGR} + (Số\ lượng_{OSD
         => Kết luận 54-64GB + 26-32 Cores + 2 x 25 Gbps( Bonding)
 ### 1.6.3. Network Sizing 
 
-$\text{Cluster Network Banwidth} = \text{Frontend Banwidth} \times Relica \times 1.3 (overhead) $
+$$
+B_{\text{Cluster\ Banwidth}} = B_{\text{Frontend}} \times R \times 1.3 \ \text{(overhead)}
+$$
+
 
 > 10 GbE per 12 OSDs 
 
@@ -306,11 +360,13 @@ $$\text{Reserved} = 4GB_{OS} + 4GB_{OVS/Agent} + (Ceph\ RAM\ nếu\ là\ HCI)$$
     - **Performance:**
         - Backend IOPS = $(10,000 \times 0.7) + (10,000 \times 0.3 \times 3) = 16,000$ IOPS.
         - Dùng SSD Enterprise (3,000 IOPS/OSD safe margin cho mixed workload).
-        - Số OSD = $16,000 / 3,000 \times 1.25 \approx 6.6 \rightarrow 7$ OSD.
+        
+        $$ Số OSD = 16,000 / 3,000 \times 1.25 \approx 6.6 \rightarrow 7 OSD. $$
+
         - Reality Check: 7 OSD là quá ít để đảm bảo an toàn dữ liệu (Min 3 Node). Ta cần số lượng OSD sao cho chia đều ra ít nhất 3 Node.
         - Đề xuất: 3 Nodes, mỗi Node 4 SSD (Tổng 12 OSD). Vừa đảm bảo Performance (dư thừa), vừa đảm bảo Failure Domain.
 - **Tính toán Compute:**
-    - Total vCPU: 400. Với Overcommit 4:1 $\rightarrow$ Cần 100 Physical Cores.
+    - Total vCPU: 400. Với Overcommit 4:1 $ \rightarrow $ Cần 100 Physical Cores.
     - Total RAM: 800GB.
-    - Nếu dùng 3 Node $\rightarrow$ Mỗi Node cần: ~33 Cores và ~270GB RAM (cho VM) + 32GB (cho OS/Ceph).
+    - Nếu dùng 3 Node $ \rightarrow $ Mỗi Node cần: ~33 Cores và ~270GB RAM (cho VM) + 32GB (cho OS/Ceph).
     - **Cấu hình Server (3 servers):** Dual Socket CPU (Total 40+ Cores/Server), 384GB RAM, 4x SSD 1.92TB.

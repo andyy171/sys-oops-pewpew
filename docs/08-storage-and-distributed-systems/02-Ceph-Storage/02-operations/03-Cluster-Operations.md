@@ -1,5 +1,4 @@
-# Tổng quan 
-
+# Vận hành Ceph 
 ## Health monitoring
 Các lệnh này được sử dụng rộng rãi và không thay đổi:
 
@@ -22,11 +21,9 @@ Xem trạng thái Monitor:
 `ceph quorum_status`: Xem chi tiết các Monitor đang tham gia quorum.
 
 
-# Service management (start/stop/restart daemons)
+## Service management (start/stop/restart daemons)
 
-
-
-# Quản lý Placement Group (PG)
+## Quản lý Placement Group (PG)
 
 [Cơ bản về PG](/08-storage-and-distributed-systems/02-Ceph-Storage/01-core-service/OSD.md#pg-placement-group)
 
@@ -46,92 +43,16 @@ ceph pg dump #Xuất thông tin chi tiết của tất cả PG.
 ceph pg dump_stuck [trạng thái] #Lấy danh sách các PG bị kẹt ở các trạng thái như inactive, unclean, stale, rất quan trọng cho việc gỡ lỗi.
 ```
 
-## PG scrubbing schedule
+### PG scrubbing schedule
 
-## PG repair commands
+### PG repair commands
 
-## Manual PG manipulation
+### Manual PG manipulation
 
-## PG states troubleshooting
-
-
-# Pool Management
-## Create/delete pools
-
-## Set pool size & min_size
-
-## Pool quotas (max objects, max bytes)
-
-## Application enable/disable
-
-## Pool statistics
+### PG states troubleshooting
 
 
-
-# OSD Management
-## Adding/removing OSDs
-
-
-## OSD replacement workflow
-
-
-## Setting OSD weights
-
-
-## OSD reweighting
-
-
-## Marking OSDs out/in
-
-
-## Purging OSDs
-
-
-# CRUSH Map Management
-- Backup CRUSH map trước khi thực hiện bất kỳ thay đổi :
-```bash
-ceph osd getcrushmap -o /backup/crushmap-$(date +%Y%m%d).bin
-crushtool -d /backup/crushmap-$(date +%Y%m%d).bin -o /backup/crushmap-$(date +%Y%m%d).txt
-```
-
-- Test CRUSH changes trước khi thực hiện thay đổi :
-```bash
-# Compile test crushmap
-crushtool -c /tmp/crushmap_new.txt -o /tmp/crushmap_new.bin
-
-# Test với dry-run
-crushtool -i /tmp/crushmap_new.bin --test --show-mappings \
-    --num-rep 3 --rule 0 > /tmp/crush_test_output.txt
-
-# Analyze: Số PGs mỗi OSD nhận được có cân bằng không?
-# Failure domain có được tôn trọng không?
-```
-
-- Khi chỉnh sửa weight của OSD , hãy chỉnh sửa từ từ 
-```bash
-# Thay vì jump từ 0 → 3.0, increase gradually
-ceph osd crush reweight osd.X 1.0
-# Wait for rebalancing...
-ceph osd crush reweight osd.X 2.0  
-# Wait...
-ceph osd crush reweight osd.X 3.0
-```
-
-- Giám sát trong khi rebalancing : 
-```bash
-watch -n 5 'ceph -s'
-ceph osd df tree
-ceph pg dump pgs_brief | grep -E 'active\+clean'
-
-# Đặt thresholds để giới hạn ảnh hương lên clients
-
-ceph tell 'osd.*' injectargs '--osd-max-backfills 1'
-ceph tell 'osd.*' injectargs '--osd-recovery-max-active 1'
-ceph tell 'osd.*' injectargs '--osd-recovery-op-priority 1'
-```
-
-# Pool Management 
-## Cơ bản
+## Pool Management
  1. Liệt kê và xem thông tin
 ```bash
 # List pools (simple)
@@ -500,8 +421,81 @@ ceph osd perf
 ceph -s | grep rebalancing
 
 ```
+### Create/delete pools
 
-## Chiến lược Backup 
+### Set pool size & min_size
+
+### Pool quotas (max objects, max bytes)
+
+### Application enable/disable
+
+### Pool statistics
+
+
+
+## OSD Management
+### Adding/removing OSDs
+
+
+### OSD replacement workflow
+
+
+### Setting OSD weights
+
+
+### OSD reweighting
+
+
+### Marking OSDs out/in
+
+
+### Purging OSDs
+
+
+## CRUSH Map Management
+- Backup CRUSH map trước khi thực hiện bất kỳ thay đổi :
+```bash
+ceph osd getcrushmap -o /backup/crushmap-$(date +%Y%m%d).bin
+crushtool -d /backup/crushmap-$(date +%Y%m%d).bin -o /backup/crushmap-$(date +%Y%m%d).txt
+```
+
+- Test CRUSH changes trước khi thực hiện thay đổi :
+```bash
+# Compile test crushmap
+crushtool -c /tmp/crushmap_new.txt -o /tmp/crushmap_new.bin
+
+# Test với dry-run
+crushtool -i /tmp/crushmap_new.bin --test --show-mappings \
+    --num-rep 3 --rule 0 > /tmp/crush_test_output.txt
+
+# Analyze: Số PGs mỗi OSD nhận được có cân bằng không?
+# Failure domain có được tôn trọng không?
+```
+
+- Khi chỉnh sửa weight của OSD , hãy chỉnh sửa từ từ 
+```bash
+# Thay vì jump từ 0 → 3.0, increase gradually
+ceph osd crush reweight osd.X 1.0
+# Wait for rebalancing...
+ceph osd crush reweight osd.X 2.0  
+# Wait...
+ceph osd crush reweight osd.X 3.0
+```
+
+- Giám sát trong khi rebalancing : 
+```bash
+watch -n 5 'ceph -s'
+ceph osd df tree
+ceph pg dump pgs_brief | grep -E 'active\+clean'
+
+# Đặt thresholds để giới hạn ảnh hương lên clients
+
+ceph tell 'osd.*' injectargs '--osd-max-backfills 1'
+ceph tell 'osd.*' injectargs '--osd-recovery-max-active 1'
+ceph tell 'osd.*' injectargs '--osd-recovery-op-priority 1'
+```
+
+### Chiến lược Backup 
 Common script 
 ```bash
 #!/bin/bash
@@ -537,10 +531,3 @@ echo "Backup completed!"
 ```
 
 
-## Cơ chế khóa trong Ceph 
-Cơ chế khóa trong Ceph hoạt động như thế nào?
-Kiến trúc phân tán: Ceph phân phối dữ liệu trên nhiều máy chủ, cho phép nhiều máy khách truy cập cùng một lúc. Tuy nhiên, để duy trì tính toàn vẹn dữ liệu, Ceph cần một cơ chế để điều phối các thao tác ghi và đọc.
-Phân phối dữ liệu: Dữ liệu trong Ceph được phân phối dưới dạng các đối tượng (object), khối (block) hoặc tệp (file) trên một cụm máy chủ (cluster).
-Quản lý quyền truy cập: Khi một client muốn ghi vào một đối tượng, nó phải yêu cầu một "khóa" cho đối tượng đó. Nếu có nhiều client yêu cầu cùng một đối tượng, Ceph sẽ quản lý các yêu cầu này theo một thứ tự nhất định.
-Tính nhất quán: Cơ chế khóa giúp đảm bảo rằng chỉ một client có thể ghi vào một đối tượng tại một thời điểm nhất định, ngăn chặn tình trạng "ghi đè" dữ liệu và đảm bảo dữ liệu luôn ở trạng thái nhất quán.
-Bảo mật và độ tin cậy: Ngoài việc đảm bảo tính nhất quán, cơ chế khóa còn giúp bảo vệ dữ liệu khỏi truy cập trái phép hoặc lỗi do xung đột đồng thời. 

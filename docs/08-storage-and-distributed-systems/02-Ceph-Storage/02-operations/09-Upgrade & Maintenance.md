@@ -1,6 +1,3 @@
-# Tổng quan
-
-
 # Upgrade strategies (rolling upgrade)
 
 

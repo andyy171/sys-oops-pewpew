@@ -40,8 +40,14 @@ theme:
     - toc.follow 
     - content.code.copy 
 
-extra_css: 
-  - assets/extra.css
+#extra_css: 
+ # - assets/extra.css
+markdown_extensions:
+  - pymdownx.arithmatex
+  
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - mathjax.js
 # --- PLUGINS ---
 plugins:
   - search 

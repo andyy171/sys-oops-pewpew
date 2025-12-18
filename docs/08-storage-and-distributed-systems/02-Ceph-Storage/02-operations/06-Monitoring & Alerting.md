@@ -1,11 +1,3 @@
-# Mục lục
-
-
-
-# Tổng quan
-
-
-
 # Ceph Dashboard
 
 
