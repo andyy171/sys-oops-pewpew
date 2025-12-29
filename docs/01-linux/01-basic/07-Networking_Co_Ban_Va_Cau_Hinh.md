@@ -122,3 +122,152 @@ virsh net-list.
 - `libvirt` sẽ thêm quy tắc `iptable`. Nó cũng sẽ kích hoạt `ip-forward`
 
 ![](./images/ipforward.png)
+
+
+## 2. LLDP - Link Layer Discovery Protocol
+- Là một giao thức chuẩn hóa (IEEE 802.1ab) giúp các thiết bị mạng (switch, router, điện thoại IP) tự động quảng bá thông tin về chính chúng (tên thiết bị, cổng kết nối, khả năng,...) tới các thiết bị lân cận, cho phép quản trị viên mạng dễ dàng khám phá, lập bản đồ và quản lý cấu trúc mạng ở lớp 2 (Lớp liên kết dữ liệu) một cách hiệu quả, đặc biệt trong môi trường đa nhà cung cấp. 
+- Đặc điểm : 
+    - Chuẩn IEEE 802.1AB
+    - Hoạt động ở Layer 2 (Data Link)
+    - Cho phép thiết bị mạng quảng bá thông tin của chính mình cho các thiết bị lân cận.
+    - Không đi qua router, không định tuyến
+- Mục đích :
+    - Xác định server đang cắm vào switch nào, port nào
+    - Mapping topology mạng
+    - Phát hiện cắm nhầm port / nhầm switch
+    - Hỗ trợ troubleshoot nhanh trong DC
+- Phạm vi hoạt động 
+    - Chỉ hoạt động trong cùng broadcast domain
+
+### 2.1 LLDP CLI 
+- Có thể sử dụng ở nhiều môi trường như :
+    - Linux server (baremetal / VM)
+    - Switch / Router
+    - VMware ESXi
+    - OpenStack / Kubernetes node
+- Sử dụng daemon chính lldpd 
+
+#### 2.1.1 Cài đặt dịch vụ 
+```bash
+apt install lldpd # Ubuntu / Debian
+yum install lldpd # RHEL / CentOS
+```
+
+#### 2.1.2 Quản lý service 
+```bash
+systemctl status lldpd
+systemctl enable --now lldpd
+```
+
+#### 2.1.3 Kiến trúc hoạt động 
+- lldpd: chạy nền, gửi & nhận LLDP frame
+
+- lldpcli: giao tiếp với daemon để hiển thị thông tin
+
+### 2.2 Các lệnh LLDP CLI quan trọng
+#### 2.2.1 Xem neighbor
+```bash
+lldpcli show neighbors
+```
+
+- Hiển thị:
+    - Switch neighbor
+    - Port switch
+    - Interface local
+
+
+> 80% tình huống thực tế chỉ cần lệnh này
+
+#### 2.2.2 Xem chi tiết neighbor 
+```bash
+lldpcli show neighbors details
+```
+
+- Thông tin bổ sung:
+    - Chassis ID
+    - System Name
+    - Port Description
+    - VLAN ID
+    - MTU
+    - Management IP
+
+#### 2.2.3 Xem neighbor theo interface
+```bash
+lldpcli show neighbors ports eth0
+```
+- Dùng khi:
+    - Server có nhiều NIC
+    - Bonding / teaming
+
+#### 2.2.4 Xem thông tin thiết bị local
+```bash
+lldpcli show chassis
+```
+
+- Hiển thị:
+    - Hostname
+    - MAC
+    - Capability
+    - IP quản lý
+
+#### 2.2.5 Các trường LLDP cần hiểu rõ 
+##### Chassis ID
+- Định danh thiết bị neighbor
+- Thường là MAC hoặc hostname
+
+##### System Name
+- Tên switch / thiết bị neighbor
+- Dùng để xác định đúng TOR / leaf
+
+##### Port ID
+- Port vật lý trên switch
+- Thông tin quan trọng nhất khi làm việc với network team
+
+##### Port Description
+- Mô tả port (do network admin cấu hình)
+
+##### Management Address
+- IP quản lý của switch
+
+##### VLAN Information
+- VLAN untagged / native VLAN (nếu có)
+
+##### TTL
+- Thời gian neighbor còn hiệu lực
+- Hết TTL → neighbor biến mất
+
+### 2.3 Thực hành thực tế 
+#### 2.3.1 Server cắm nhầm switch
+```bash
+lldpcli show neighbors
+```
+→ Phát hiện switch không đúng thiết kế
+
+#### 2.3.2 Bonding / NIC Teaming
+- Kiểm tra từng NIC có nối tới 2 switch khác nhau
+- Tránh single point of failure
+
+#### 2.3.3 Kubernetes / OpenStack node
+- Xác định node nối đúng TOR
+- Kiểm tra VLAN quản lý / storage
+
+#### 2.3.4 Không thấy LLDP neighbor
+```bash
+systemctl status lldpd
+ip link show eth0
+tcpdump -i eth0 ether proto 0x88cc
+``` 
+
+#### 2.3.5 Bật / tắt LLDP trên port
+```bash
+lldpcli configure ports eth0 lldp status rx-and-tx
+lldpcli configure ports eth0 lldp status disabled
+```
+
+#### 2.3.6 Chỉ nhận, không gửi
+```bash
+lldpcli configure ports eth0 lldp status rx-only
+```
+
+
+> LLDP là giao thức layer 2 cho phép thiết bị tự quảng bá thông tin cho neighbor trực tiếp, thường dùng để xác định server đang cắm vào switch và port nào, rất hữu ích cho troubleshooting và mapping hạ tầng.
