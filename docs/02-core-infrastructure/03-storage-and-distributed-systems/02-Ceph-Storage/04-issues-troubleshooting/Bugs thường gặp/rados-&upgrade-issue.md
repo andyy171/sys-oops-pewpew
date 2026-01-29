@@ -1,0 +1,58 @@
+# Các issues liên quan đến quản lý Rados và nâng cấp 
+
+## Sự cố Slow Ops do Nút thắt cổ chai Phần cứng và Mạng vật lý
+- Mô tả lỗi: Hệ thống ghi nhận các yêu cầu I/O (đọc/ghi) không thể hoàn thành trong ngưỡng 30 giây mặc định. Biểu hiện là lệnh `ceph -s` hiện cảnh báo `Slow ops`, trong khi trên Client (VM hoặc Container), các ứng dụng bắt đầu bị treo I/O. Lỗi này có thể xảy ra cục bộ trên một vài OSD hoặc lan rộng ra toàn bộ một Host, thậm chí là toàn cụm.
+
+- Nguyên nhân dự đoán: Đối với ổ cứng, lỗi thường do ổ đã đạt giới hạn vật lý (%util = 100%) hoặc bắt đầu có dấu hiệu hỏng hóc (bad sectors/firmware lỗi) khiến thời gian phản hồi (`await`) tăng vọt lên hàng trăm ms. Đối với mạng, nguyên nhân thường là do cấu hình MTU không nhất quán giữa các node (Node dùng 1500, Switch dùng 9000) gây rơi gói tin, hoặc băng thông mạng Cluster không đủ để gánh đồng thời cả traffic Client và traffic replication (sao chép dữ liệu).
+
+- Cách xử lý: Sử dụng `iostat -xNmy 1` để xác định ổ cứng có `await` > 50ms thì cần thay thế ngay. Kiểm tra latency mạng bằng `ceph tell osd.* version` để xem tốc độ phản hồi lệnh; nếu chậm trên diện rộng, hãy rà soát lại MTU và bảng `netstat -s` để tìm lỗi packet loss. Trong trường hợp khẩn cấp, có thể khởi động lại OSD bị chậm để giải phóng hàng đợi, nhưng đây chỉ là giải pháp tạm thời.
+
+## Hiện tượng "Slow Ops" diện rộng do cơ chế mClock Profile không tương thích
+- **Mô tả lỗi:** Sau khi nâng cấp từ Pacific lên Quincy hoặc Reef, nhiều quản trị viên báo cáo hiện tượng các yêu cầu I/O từ Client (RBD/RGW) bị chậm đột ngột, độ trễ tăng từ vài miligiây lên hàng trăm miligiây. Lệnh `ceph health detail` thường xuyên đưa ra cảnh báo `slow ops are blocked`. Điều kỳ lạ là tài nguyên phần cứng (CPU, Disk, Network) vẫn chưa chạm ngưỡng quá tải, nhưng tốc độ xử lý của cụm lại như bị "bóp nghẹt", gây ảnh hưởng trực tiếp đến các ứng dụng chạy phía trên.
+
+- **Nguyên nhân dự đoán:** Nguyên nhân nằm ở sự thay đổi thuật toán lập lịch I/O từ WPQ (Weighted Priority Queue) sang mClock. Kể từ bản Quincy, mClock trở thành cấu hình mặc định nhằm cân bằng giữa tác vụ phục hồi (Recovery) và tác vụ của người dùng (Client I/O). Tuy nhiên, profile mặc định balanced thường hoạt động không tốt trên các cụm lưu trữ hỗn hợp (Hybrid) hoặc các cụm sử dụng ổ cứng cơ (HDD). Thuật toán này giới hạn băng thông của Client để dành tài nguyên cho các tiến trình nền, nhưng đôi khi nó tính toán sai ngưỡng giới hạn (Capacity) của ổ đĩa, dẫn đến việc kìm hãm I/O của người dùng một cách quá mức cần thiết.
+
+- **Cách xử lý:** Giải pháp triệt để là thực hiện đo lường lại hiệu năng thực tế của OSD bằng lệnh ceph tell osd.* bench và cập nhật lại cấu hình osd_mclock_max_capacity_iops. Trong môi trường Production cần ưu tiên hiệu năng tối đa, người quản trị nên chuyển đổi profile sang high_client_ops bằng lệnh ceph config set osd osd_mclock_profile high_client_ops. Ngoài ra, việc tinh chỉnh các tham số reservation và limit của mClock sẽ giúp hệ thống ưu tiên xử lý các request từ Client ngay cả khi cụm đang trong quá trình tái cấu trúc dữ liệu.
+
+## Lỗi "Large OMAP Objects" gây kẹt OSD và hỏng database BlueStore
+- **Mô tả lỗi:** Cảnh báo `Large OMAP objects found` thường xuất hiện tại các cụm lưu trữ RGW hoặc CephFS có mật độ file lớn. Khi kích thước OMAP vượt ngưỡng (thường là 200.000 keys trên mỗi object), OSD chứa object đó bắt đầu tiêu tốn RAM bất thường và có thể bị crash liên tục do lỗi "Segmentation fault". Nghiêm trọng hơn, nếu database RocksDB bên dưới BlueStore bị quá tải, toàn bộ OSD có thể bị đánh dấu là "Down", gây ra vòng lặp phục hồi dữ liệu không hồi kết và làm giảm độ ổn định của toàn bộ cụm.
+
+- **Nguyên nhân dự đoán:** OMAP là cơ chế lưu trữ key-value dùng để quản lý index của Bucket (trong RGW) hoặc Metadata (trong CephFS). Khi một Bucket chứa quá nhiều đối tượng mà không được chia nhỏ (sharding) kịp thời, một vài object RADOS sẽ phải gánh chịu lượng key khổng lồ. Từ bản Pacific đến Squid, dù cơ chế "Dynamic Resharding" đã được cải thiện, nhưng trong các tình huống ghi dữ liệu tốc độ cao, hệ thống không kịp thực hiện resharding, khiến RocksDB phải thực hiện các tác vụ "Compaction" quá nặng nề, dẫn đến việc chiếm dụng toàn bộ tài nguyên của tiến trình OSD.
+
+- **Cách xử lý:** Để xử lý, người quản trị cần định danh chính xác các bucket hoặc directory đang gây ra OMAP lớn thông qua lệnh `radosgw-admin bucket limit check`. Giải pháp ngắn hạn là thực hiện resharding thủ công cho các bucket bị lỗi để phân tán OMAP sang nhiều Shard hơn. Về mặt kiến trúc, từ bản Reef trở đi, người dùng được khuyến khích sử dụng phân vùng DB/WAL trên ổ cứng NVMe chuyên dụng với kích thước đủ lớn (tối thiểu 4-10% dung lượng OSD) để RocksDB có đủ không gian thực hiện các thao tác nén và sắp xếp dữ liệu mà không làm ảnh hưởng đến tiến trình ghi chính của RADOS.
+
+## Sự cố kẹt nâng cấp do cờ "require_osd_release" và lỗi Orchestrator
+- **Mô tả lỗi:** Trong quá trình nâng cấp từ Quincy lên Reef hoặc từ Reef lên Squid, tiến trình nâng cấp thông qua `cephadm` hoặc `orchestrator` có thể bị dừng lại ở mức 90% mà không có thông báo lỗi rõ ràng. Các daemon (như MGR hoặc OSD) báo cáo phiên bản mới, nhưng các tính năng mới của phiên bản đó lại không khả dụng. Một dấu hiệu nhận biết điển hình là cụm vẫn báo cáo trạng thái `UPGRADE_IN_PROGRESS` dù tất cả các node đã được cài đặt mã nguồn mới, dẫn đến việc các tác vụ quản trị bị khóa chặt.
+
+- **Nguyên nhân dự đoán:** Vấn đề này thường do việc thiếu sót trong việc thiết lập các cờ trạng thái logic (logical flags). Ceph yêu cầu sự xác nhận thủ công rằng tất cả các thành phần đã sẵn sàng trước khi kích hoạt các thay đổi về cấu trúc dữ liệu thấp cấp. Nếu tham số `require_osd_release` không được cập nhật lên phiên bản đích, hoặc nếu các daemon cũ vẫn còn sót lại trong bộ nhớ (Ghost processes), trình điều phối (MGR Orchestrator) sẽ không thể hoàn tất chu trình nâng cấp. Đặc biệt trong các bản Reef, một số lỗi logic trong trình `cephadm` khiến nó không nhận diện được các OSD đã khởi động lại, làm cho hàng đợi công việc bị tắc nghẽn.
+
+- **Cách xử lý:** Người quản trị cần kiểm tra phiên bản thực tế của toàn bộ daemon bằng lệnh `ceph versions`. Nếu tất cả đã đồng nhất, hãy thực hiện lệnh kích hoạt thủ công: `ceph osd require-osd-release reef` (hoặc squid tùy phiên bản). Tiếp theo, cần kiểm tra danh sách các tiến trình đang chạy trên từng node bằng lệnh `ps` để đảm bảo không còn tiến trình cũ nào đang chiếm dụng socket. Việc thực hiện `ceph mgr fail` để ép buộc một MGR mới lên nắm quyền cũng thường xuyên giải quyết được tình trạng kẹt trạng thái của Orchestrator, giúp hoàn tất quá trình nâng cấp một cách an toàn.
+
+## Lỗi "OSD Peering" kéo dài và tranh chấp tài nguyên mạng (Pacific -> Squid)
+- **Mô tả lỗi:** Khi khởi động lại cụm sau nâng cấp hoặc khi một node mạng gặp sự cố, các Placement Groups (PG) có thể bị kẹt ở trạng thái `Peering` hoặc `Remapped `trong thời gian rất dài. Trong suốt giai đoạn này, dữ liệu không được bảo vệ đầy đủ và hiệu năng của Client bị giảm sút. Các log của OSD liên tục xuất hiện các thông báo `heartbeat_check: slow heartbeat response`, cho thấy sự mất kết nối giữa các node dù băng thông mạng vẫn còn trống.
+
+- **Nguyên nhân dự đoán:** Hiện tượng này thường do sự tranh chấp giữa mạng phục hồi (Cluster Network) và mạng phục vụ khách hàng (Public Network). Từ bản Pacific trở đi, Ceph giới thiệu các cơ chế kiểm tra sức khỏe mạng khắt khe hơn. Nếu cấu hình MTU (Jumbo Frames) không đồng nhất giữa các switch hoặc nếu các bản tin OSD Peering (vốn có kích thước nhỏ nhưng số lượng cực lớn) bị đánh tụt ưu tiên bởi các gói tin dữ liệu lớn, cụm sẽ rơi vào trạng thái "vùng vằng" không thể thống nhất được sơ đồ bản đồ (OSDMap). Ở bản Quincy và Reef, lỗi này còn có thể do cơ chế "Mon Quorum" bị chậm trễ trong việc cập nhật các thay đổi trạng thái PG quá nhanh từ hàng ngàn OSD.
+
+- **Cách xử lý:** Quy tắc vàng là luôn tách biệt vật lý mạng Cluster và Public với băng thông tối thiểu 25Gbps cho môi trường Production. Cần kiểm tra kỹ tính nhất quán của MTU 9000 trên toàn bộ hạ tầng mạng. Để giảm tải cho quá trình Peering, có thể tạm thời tăng tham số `osd_peering_wq_threads` để OSD xử lý các bản tin trạng thái nhanh hơn. Đồng thời, việc điều chỉnh `osd_op_thread_timeout` lên mức cao hơn sẽ giúp tránh việc OSD tự đánh dấu mình là "Down" khi đang quá bận rộn với tác vụ Peering, từ đó ổn định hóa cụm và cho phép các PG chuyển sang trạng thái `Active+Clean` nhanh hơn.
+
+
+## Tranh chấp tài nguyên do RocksDB Compaction và OMAP quá tải
+- **Mô tả lỗi:** Các OSD tiêu tốn RAM đột ngột và báo lỗi Slow Ops ngay cả khi lưu lượng ghi không quá cao. Logs của OSD xuất hiện liên tục các thông báo về `compaction` hoặc `heartbeat_check: no reply`. Đây là lỗi rất đặc thù khi hệ thống có nhiều thao tác xóa hoặc ghi đè dữ liệu (thường gặp trong workload của RGW hoặc các database chạy trên RBD).
+
+- **Nguyên nhân dự đoán:** RocksDB (cơ sở dữ liệu bên dưới BlueStore) phải thực hiện quá trình nén và sắp xếp lại dữ liệu (Compaction) để dọn dẹp các dữ liệu cũ (stale data). Quá trình này mặc định là đơn luồng và nó sẽ khóa chặt các tiến trình OSD khác nếu OMAP (Object Map) quá lớn hoặc nếu RAM không đủ để làm bộ đệm cho RocksDB. Việc sử dụng SWAP trên host là "kẻ thù số 1" ở đây, vì chỉ cần một chút dữ liệu OSD bị đẩy vào Swap, latency sẽ tăng vọt.
+
+- **Cách xử lý:** Thực hiện `force compact` thủ công bằng lệnh `ceph daemon osd.{id} compact` để cưỡng ép dọn dẹp. Về lâu dài, cần tăng `rocksdb_cache_size` lên tối thiểu 512MB và tắt hoàn toàn Swap trên các node OSD (`swapoff -a`). Nếu có điều kiện, hãy tách riêng phân vùng DB/WAL sang ổ NVMe để RocksDB không phải tranh chấp I/O với dữ liệu chính.
+
+## Xung đột từ các tác vụ ngầm (Scrubbing & Recovery)
+- **Mô tả lỗi:** Slow Ops xuất hiện theo chu kỳ (thường là ban đêm hoặc cuối tuần) hoặc xảy ra ngay sau khi một node bị sập rồi khởi động lại. Hệ thống hoạt động bình thường cho đến khi Ceph bắt đầu tự động quét dữ liệu hoặc phục hồi dữ liệu bị thiếu, làm tê liệt hiệu năng của các VM đang chạy.
+
+- **Nguyên nhân dự đoán:** Cơ chế Scrubbing (quét sâu để kiểm tra toàn vẹn) mặc định của Ceph rất tốn I/O. Nếu không được giới hạn khung giờ, nó sẽ tranh chấp tài nguyên với Client. Tương tự, khi một OSD "chết và sống lại", cơ chế Backfilling sẽ "đổ" dữ liệu về với tốc độ tối đa, làm nghẽn toàn bộ băng thông đĩa và mạng của node đó.
+
+- **Cách xử lý:** Cấu hình lại khung giờ Scrubbing vào giờ thấp điểm bằng `osd_scrub_begin_hour` và `osd_scrub_end_hour`. Khi có sự cố Recovery diện rộng, cần giảm độ ưu tiên bằng cách set `osd_max_backfills = 1` và tăng `osd_recovery_sleep` để ép tiến trình phục hồi phải "nghỉ ngơi", nhường băng thông cho Client I/O.
+
+## Thiếu hụt tối ưu hóa từ phía OS và OpenStack
+- **Mô tả lỗi:** Cả cụm Ceph nhìn chung ổn định nhưng một số dịch vụ trên OpenStack như Cinder upload volume hay Glance image service lại cực kỳ chậm, dẫn đến Slow Ops báo ngược về từ phía Client.
+
+- **Nguyên nhân dự đoán:** Các tham số `sysctl` của hệ điều hành như `vm.dirty_ratio` chưa được tinh chỉnh dẫn đến việc flush dữ liệu xuống đĩa không hiệu quả. Ngoài ra, driver Cinder RBD hoặc cấu hình Nova-compute không đủ số lượng thread để xử lý các yêu cầu I/O song song, gây ra hiện tượng nghẽn cổ chai tại tầng ứng dụng trước khi dữ liệu kịp tới Ceph.
+
+- **Cách xử lý:** Thực hiện Tuning hệ điều hành với `vm.swappiness = 1` và kiểm tra bảng `nf_conntrack_max` để tránh drop kết nối mạng. Phía OpenStack, cần đảm bảo bật `rbd_cache = true` trong cấu hình Nova/Cinder để giảm bớt gánh nặng I/O trực tiếp lên Cluster.
