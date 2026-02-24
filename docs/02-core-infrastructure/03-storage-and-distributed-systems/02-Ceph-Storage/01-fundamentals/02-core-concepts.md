@@ -160,7 +160,6 @@ root → datacenter → row → rack → host → osd
 - Mỗi tầng là một **bucket**, có thể chứa bucket con hoặc thiết bị.
 - CRUSH sử dụng topology này để phân phối dữ liệu qua các failure zones, đảm bảo an toàn và sẵn sàng.
 
-
 #### Phân phối replica
 - Khi nhân bản dữ liệu, CRUSH chọn replica ở các bucket khác nhau (ví dụ, 3 host khác rack).
 - Nếu một node/rack bị lỗi, các replica còn lại vẫn khả dụng.
@@ -247,7 +246,7 @@ Mỗi OSD có trọng số (weight) phản ánh khả năng lưu trữ hoặc hi
 Khi weight thay đổi, thuật toán chỉ dịch chuyển lượng dữ liệu tối thiểu.
 
 
-### CRUSH Rules & Placement
+## CRUSH Rules & Placement
 - CRUSH Rule là định nghĩa cách dữ liệu được phân phối trên cluster.
 - Thông thường sẽ có 2 kiểu:
     - Replicated Rules: cho replication pool.
@@ -584,20 +583,20 @@ Cluster maps là "GPS" giúp client và OSD biết vị trí dữ liệu. MON du
 
 - **Monitor Map** chứa cluster fsid, vị trí, tên, địa chỉ và TCP port của mỗi monitor, cùng với epoch và thời gian tạo/sửa đổi
 
-# Authentication
-CephX Authentication Model
-- **CephX** là **cơ chế xác thực nội bộ của Ceph**, được thiết kế tương tự **Kerberos** nhằm đảm bảo mọi giao tiếp giữa client và daemon đều được **xác minh danh tính và bảo vệ an toàn**.
-- Cơ chế hoạt động như sau: **Client gửi yêu cầu xác thực đến Monitor (MON)** bằng cặp username/secret key. Nếu hợp lệ, MON **cấp một session ticket (keyring)** có thời hạn; client dùng ticket này để **ký và xác thực các yêu cầu** tới OSD, MDS hay MON khác mà không cần gửi lại mật khẩu.
-- Cách làm này giống như **mua vé vào rạp**: người dùng lấy vé từ quầy (MON) rồi dùng nó để ra vào rạp (OSD). CephX giúp **ngăn truy cập trái phép**, **giảm rủi ro lộ khóa**, hỗ trợ **ACL và LDAP**, và được **kích hoạt mặc định trong mọi cụm Ceph**.
+# Cơ chế xác thực - Authentication
+- CephX Authentication Model
+    - **CephX** là **cơ chế xác thực nội bộ của Ceph**, được thiết kế tương tự **Kerberos** nhằm đảm bảo mọi giao tiếp giữa client và daemon đều được **xác minh danh tính và bảo vệ an toàn**.
+    - Cơ chế hoạt động như sau: **Client gửi yêu cầu xác thực đến Monitor (MON)** bằng cặp username/secret key. Nếu hợp lệ, MON **cấp một session ticket (keyring)** có thời hạn; client dùng ticket này để **ký và xác thực các yêu cầu** tới OSD, MDS hay MON khác mà không cần gửi lại mật khẩu.
+    - Cách làm này giống như **mua vé vào rạp**: người dùng lấy vé từ quầy (MON) rồi dùng nó để ra vào rạp (OSD). CephX giúp **ngăn truy cập trái phép**, **giảm rủi ro lộ khóa**, hỗ trợ **ACL và LDAP**, và được **kích hoạt mặc định trong mọi cụm Ceph**.
 
 ## Authentication flow
 ![](/08-storage-and-distributed-systems/02-Ceph-Storage/images/theory/authentication-flow.png)
 
-Quy trình :
-1. Client đọc file `/etc/ceph/ceph.conf` để tìm địa chỉ các monitor.
-2. Tải file keyring (ví dụ: `/etc/ceph/ceph.client.admin.keyring`).
-3. Kết nối đến một monitor và trình bày thông tin xác thực (credentials).
-4. Monitor xác thực bằng cơ chế CephX.
+- Quy trình :
+    1. Client đọc file `/etc/ceph/ceph.conf` để tìm địa chỉ các monitor.
+    2. Tải file keyring (ví dụ: `/etc/ceph/ceph.client.admin.keyring`).
+    3. Kết nối đến một monitor và trình bày thông tin xác thực (credentials).
+    4. Monitor xác thực bằng cơ chế CephX.
 
 ```
 Configuration Files
@@ -617,7 +616,7 @@ caps osd = "allow *"
 caps mds = "allow *"
 ```
 
-- Cluster Máp nhận được :
+- Cluster Map nhận được :
 ```
 Maps Received:
 Monitor Map: List of all monitors (epoch: 3)
@@ -669,7 +668,7 @@ Bước này là khâu thực hiện thao tác ghi (write) dữ liệu vào cụ
 4. Phản hồi Máy khách:
   + Chỉ sau khi nhận được xác nhận từ tất cả các bản sao (bao gồm cả ghi thành công trên OSD Chính), OSD Chính mới gửi một tín hiệu ACK (Acknowledgement) duy nhất trở lại máy khách. Tín hiệu này báo hiệu rằng thao tác ghi đã hoàn tất và an toàn trong cụm.
 
-## Capabilities & authorization
+## Kiểm soát quyền rwx trên các dịch vụ - Capabilities & authorization
 Capabilities (hay còn gọi là "caps") là cách Ceph kiểm soát quyền truy cập của người dùng hoặc client đối với các dịch vụ như MON, OSD, MDS, MGR. Chúng định nghĩa những hành động nào được phép thực hiện, như đọc (read), viết (write) hoặc thực thi (execute).
 
 - Capabilities được viết dưới dạng chuỗi: `dịch_vụ 'allow <hành_động>'`. Các hành động phổ biến:
