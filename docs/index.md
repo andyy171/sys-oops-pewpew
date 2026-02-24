@@ -1,47 +1,48 @@
 # Tổng quan hệ thống 
 
-Tổng hợp ghi chú về System Engineering, DevOps và Kiến trúc hệ thống.
+Tổng hợp ghi chú về System/Cloud Engineering, DevOps và Kiến trúc hệ thống.
 
 ---
 
 ## 🟢 Phần 1: Kiến thức Cơ bản (Foundation)
 *Nền móng vững chắc cho System Admin & DevOps.*
 
-* **[00. Kiến thức nền tảng (Fundamentals)](./00-fundamentals/.pages)**
-    * Các khái niệm nhập môn cần biết trước khi bắt đầu.
-* **[01. Hệ điều hành Linux](./01-linux/)**
-    * Làm chủ dòng lệnh, quản lý process, user và permission.
-* **[02. Mạng máy tính (Network)](./02-network/)**
-    * Mô hình OSI/TCP-IP, DNS, HTTP và các giao thức mạng cốt lõi.
+* **[00. Kiến thức nền tảng (Fundamentals)](./01-architecture/00-fundamentals/overview.md)**
 
+* **[01. Linux](./02-core-infrastructure/01-linux/overview.md)**
+
+* **[02. Cơ bản về mạng (Network)](./02-core-infrastructure/02-network/Overview.md)**
+
+* **[03. Thiết kế kiến trúc hệ thống](./01-architecture/01-system-design-and-architecture/overview.md)**
 ---
 
 ## 🔵 Phần 2: Kiến thức Cốt lõi (Core Engineering)
 *Các kỹ năng chuyên sâu để vận hành và quản lý hệ thống.*
 
-* **[03. Quản trị & Tự động hóa (Admin & Automation)](./03-system-administration-and-automation/)**
-    * Scripting, Ansible và các tool quản trị tự động.
-* **[04. Container & Ảo hóa](./04-containerization-and-virtualization/)**
-    * Docker, KVM, Vagrant và nguyên lý ảo hóa.
-* **[05. Cloud Computing & IaC](./05-cloud-and-iac/)**
-    * AWS/GCP, Terraform và tư duy Infrastructure as Code.
-* **[06. Giám sát & Quan sát (Observability)](./06-observability-and-monitoring/)**
-    * Prometheus, Grafana, ELK Stack, Logging và Tracing.
-* **[07. Bảo mật hệ thống (Security)](./07-security-and-hardening/)**
-    * Hardening Linux, Firewalls, VPN và các nguyên tắc bảo mật.
-* **[08. Lưu trữ & Hệ thống phân tán](./08-storage-and-distributed-systems/)**
-    * Ceph, NFS, Block/Object Storage và Database.
+* **[03. Quản trị hệ thống](./03-compute-orchestration/01-system-administration-and-automation/overview.md)**
+
+* **[04. Container & Ảo hóa](./03-compute-orchestration/02-containerization-and-virtualization/overview.md)**
+
+* **[05. Cơ bản về Cloud Computing ](./04-cloud-edge/01-cloud-fundamentals/overview.md)**
+
+* **[06. Cloud Service Vendor ](./04-cloud-edge/02-cloud-ecosystem/overview.md)**
+
+* **[07. Giám sát & Quan sát (Observability)](./05-Infrastructure-Automation/01-observability-and-monitoring/overview.md)**
+
+* **[08. Bảo mật hệ thống (Security)](./05-Infrastructure-Automation/02-security-and-hardening/overview.md)**
+
+* **[09. Lưu trữ & Hệ thống phân tán](./02-core-infrastructure/03-storage-and-distributed-systems/Overview.md)**
+
 
 ---
 
 ## 🔴 Phần 3: Kiến thức Nâng cao (Advanced)
 *Kiến trúc tổng thể và Quy trình phát triển hiện đại.*
 
-* **[09. CI/CD & DevOps Integration](./09-cicd-devops-integration/)**
-    * Jenkins, GitHub Actions, GitLab CI và quy trình deploy.
-* **[10. Thiết kế hệ thống (System Design)](./10-system-design-and-architecture/)**
-    * Load Balancing, Caching, High Availability và kiến trúc Microservices.
+* **[10. CI/CD & DevOps Integration](./05-Infrastructure-Automation/03-cicd-devops-integration/overview.md)**
 
 
 ## 🟢 Kiến thức khác 
+
+
 ---
