@@ -1,7 +1,6 @@
----
 title: Ceph PG inconsistent
 level: low
----
+
 
 # Hiện tượng
 - Kiểm tra hằng ngày cụm ceph gặp lỗi dữ liệu trên pg bị lệch khi replica từ osd primary sang osd replica .
@@ -30,7 +29,7 @@ rados list-inconsistent-obj {pg.id} --format=json-pretty
 
 ![](./images/050326/detect-inconsistent-obj-2.png)
 
-Từ log chúng ta đã xác định được có 1 object bị lỗi khi từ osd.76 replica sang osd.24 . Lỗi báo về là lỗi đọc (read_errprs)
+Từ log chúng ta đã xác định được có 1 object bị lỗi khi từ osd.76 replica sang osd.24 . Lỗi báo về là lỗi đọc (read_errors)
 
 # Xử lý 
 - Khi đã xác định được lỗi , ta thử chạy 2 lệnh deep-scrub và repair thủ công để ceph đối chiếu lại 2 osd 
