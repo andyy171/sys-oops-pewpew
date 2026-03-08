@@ -1638,12 +1638,31 @@ Các OSD còn lại (Primary và các Replica) sẽ gửi yêu cầu copy các o
     - Xóa dữ liệu không cần thiết (giải pháp tạm thời, thường bằng cách sử dụng cờ nofull sau khi có thể ghi lại).
 
 # Cơ chế khóa trong Ceph -  Exclusive Locks
-- Cách hoạt động :
+- **Cách hoạt động :**
     - **Kiến trúc phân tán:** Ceph phân phối dữ liệu trên nhiều máy chủ, cho phép nhiều máy khách truy cập cùng một lúc. Tuy nhiên, để duy trì tính toàn vẹn dữ liệu, Ceph cần một cơ chế để điều phối các thao tác ghi và đọc.
     - **Phân phối dữ liệu:** Dữ liệu trong Ceph được phân phối dưới dạng các đối tượng (object), khối (block) hoặc tệp (file) trên một cụm máy chủ (cluster).
     - **Quản lý quyền truy cập: **Khi một client muốn ghi vào một đối tượng, nó phải yêu cầu một "khóa" cho đối tượng đó. Nếu có nhiều client yêu cầu cùng một đối tượng, Ceph sẽ quản lý các yêu cầu này theo một thứ tự nhất định.
     - **Tính nhất quán:** Cơ chế khóa giúp đảm bảo rằng chỉ một client có thể ghi vào một đối tượng tại một thời điểm nhất định, ngăn chặn tình trạng "ghi đè" dữ liệu và đảm bảo dữ liệu luôn ở trạng thái nhất quán.
     - **Bảo mật và độ tin cậy:** Ngoài việc đảm bảo tính nhất quán, cơ chế khóa còn giúp bảo vệ dữ liệu khỏi truy cập trái phép hoặc lỗi do xung đột đồng thời. 
 
+
+# Ceph log và File Locations
+- `/etc/ceph/ceph.conf` : Chứa cấu hình cluster ceph (chứa các tham số của daemon ..) . 
+- `/var/lib/ceph` : Chứa dữ liệu các daemon (osd/mon/mgr..) trên node .
+    - `/var/lib/ceph/osd/ceph-<id>/` : Thư mục quan trọng nhất thường chứa :
+        - Dữ liệu object thực tế (PG, object store – BlueStore)
+        - RocksDB metadata (nếu dùng BlueStore)
+        - WAL / DB (nếu cấu hình tách riêng)
+        - Keyring của OSD
+        Các dữ liệu disk VM (RBD image) thực chất được lưu dưới dạng object trong các OSD này.
+    - `/var/lib/ceph/mon/ceph-<node>/` : Thư mục chứa thông tin về monitor map , cluster map , thông tin về paxos cũng như là keyring của monitor.
+        > Đây là nơi giữ metadata quan trọng của cluster 
+    - `/var/lib/ceph/mgr/` : Thư mục chưa thông tin state của manager module, module cache và keyring mgr .
+    - `/var/lib/ceph/mds/` : Thư mục tồn tại khi có sử dụng cephFS lưu trữ metadatacache , journal và keyring .
+- `/var/log/ceph` : Thư mục log chứa tất cả log dạng file để tra cứu. 
+
+> Log của osd là cục bộ trên node chứa osd đó, nên để debug osd phải truy cập node tương ứng 
+> Tên file thường kèm NODE_NAME hoặc NUMBER để dễ phân biệt daemon nào phát sinh log.
+>Kiểm tra `ceph.audit.log` khi nghi ngờ vấn đề liên quan authentication/cephx.
 
 

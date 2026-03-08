@@ -1,13 +1,10 @@
-# --- THÔNG TIN CƠ BẢN ---
 site_name: Andy Nael's Docs
 site_url: https://system-notes.netlify.app 
 site_author: Andy Nael 
 site_description: Tài liệu System Administration và DevOps
 repo_name: SRE
 repo_url: https://github.com/AndyNael/SRE/ 
-edit_uri: 'https://github.com/AndyNael/SRE/edit/main/docs/'
 
-# --- GIAO DIỆN (THEME) ---
 theme:
   name: material
   language: vi 
@@ -33,17 +30,16 @@ theme:
         name: Chuyển sang giao diện sáng
 
   features:
-    - navigation.sections
-    - navigation.tabs.sticky 
-    - navigation.top 
-    - navigation.tracking 
-    - toc.follow 
-    - content.code.copy 
-
-#extra_css: 
- # - assets/extra.css
-markdown_extensions:
-  - pymdownx.arithmatex
+  - navigation.sections
+  - navigation.tabs.sticky
+  - navigation.top
+  - navigation.tracking
+  - toc.follow
+  - content.code.copy
+  - content.code.annotate
+  - content.tabs.link
+  - search.highlight
+  - search.suggest
   
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
@@ -52,44 +48,31 @@ extra_javascript:
 plugins:
   - search 
   - awesome-pages 
-# --- NAV (ĐÃ SỬA ĐÚNG VỊ TRÍ) ---
-# nav:
-#   - Trang chủ: index.md
-  
-#   - 1. Kiến thức Cơ bản:
-#       - Nền tảng (Fundamentals): 00-fundamentals/
-#       - Hệ điều hành Linux: 01-linux/
-#       - Mạng máy tính (Network): 02-network/
+  - mkdocs-backlinks-plugin
+  - mkdocs-roamlinks-plugin
 
-#   - 2. Kiến thức Cốt lõi:
-#       - Quản trị & Tự động hóa: 03-system-administration-and-automation/
-#       - Container & Ảo hóa: 04-containerization-and-virtualization/
-#       - Cloud & IaC: 05-cloud-and-iac/
-#       - Giám sát (Observability): 06-observability-and-monitoring/
-#       - Bảo mật (Security): 07-security-and-hardening/
-#       - Lưu trữ & Phân tán: 08-storage-and-distributed-systems/
-
-#   - 3. Kiến thức Nâng cao:
-#       - CI/CD & DevOps: 09-cicd-devops-integration/
-#       - Thiết kế hệ thống: 10-system-design-and-architecture/
-
-# --- MARKDOWN EXTENSIONS ---
 markdown_extensions:
+
+  - pymdownx.arithmatex
+
   - pymdownx.highlight:
       anchor_linenums: true
+
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences 
+  - pymdownx.superfences
 
   - pymdownx.tabbed:
       alternate_style: true
 
   - admonition
-  - pymdownx.details 
+  - pymdownx.details
+
   - pymdownx.tasklist:
       custom_checkbox: true
 
-  - attr_list 
+  - attr_list
+
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg

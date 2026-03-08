@@ -1,3 +1,14 @@
+---
+Hướng dẫn các thao tác tìm kiếm và sửa lỗi 
+
+---
+# 
+- Xem log "thời gian thực":
+`tail -f /var/log/ceph/ceph.log` hoặc `tail -f /var/log/ceph/ceph-osd-3.log`
+
+- Tìm khóa/chuỗi quan trọng:
+`grep -i "error\|failed\|warning" /var/log/ceph/ceph.log`
+
 # Common issues & solutions:
 
 ## Slow requests

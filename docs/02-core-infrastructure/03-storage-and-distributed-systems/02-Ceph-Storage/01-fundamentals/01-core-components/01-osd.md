@@ -2,9 +2,6 @@
 title : OSD 
 
 ---
-
-
-
 # Kiến trúc và cơ chế hoạt động
 Ceph Object Storage Device (OSD) là thành phần cốt lõi trong kiến trúc Ceph storage cluster, đóng vai trò lưu trữ dữ liệu thực tế trên các ổ đĩa lưu trữ vật lý dưới dạng objects. OSD daemon chịu trách nhiệm phần lớn các hoạt động xử lý dữ liệu bên trong Ceph cluster, bao gồm lưu trữ, nhân bản, khôi phục và đảm bảo tính nhất quán của dữ liệu.
 - OSD báo cáo trạng thái (up/down) cho cluster, xử lý replication và kiểm tra lỗi (scrubbing).
@@ -90,60 +87,8 @@ Linux filesystem đóng vai trò quan trọng thông qua việc hỗ trợ Exten
 
 XATTRs lưu trữ thông tin mở rộng dạng cặp xattr_name và xattr_value, cho phép OSD daemon quản lý dữ liệu hiệu quả.
 
-## So sánh các Filesystem
-### Btrfs (B-tree File System)
-- Ưu điểm:
 
-    + Hiệu năng tốt nhất trong ba lựa chọn
-    + Hỗ trợ copy-on-write, lý tưởng cho VM provisioning và cloning
-    + Writable snapshots tích hợp
-    + Transparent compression
-    + Pervasive checksums đảm bảo tính toàn vẹn dữ liệu
-    + Quản lý multidevice tích hợp trong filesystem
-    + XATTRs hiệu quả và inline data cho file nhỏ
-    + SSD-aware optimization
-    + Online fsck (file system check)
-
-- Nhược điểm:
-
-    + Chưa ổn định cho môi trường production
-    + Chỉ phù hợp cho test deployment
-
-### XFS
-- Ưu điểm:
-
-    + Filesystem ổn định, tin cậy và được kiểm chứng
-    + Khuyến nghị cho Ceph production cluster
-    + Được sử dụng rộng rãi nhất trong các triển khai Ceph
-    + Hỗ trợ XATTRs tốt hơn ext4
-
-- Nhược điểm:
-
-    + Kém Btrfs về một số tính năng tiên tiến
-    + Vấn đề hiệu năng khi mở rộng metadata
-    + Là journaling filesystem, tạo overhead khi ghi dữ liệu (ghi vào journal trước, sau đó mới ghi vào filesystem)
-
-> Lựa chọn phổ biến nhất và ổn định nhất cho OSD trong production.
-### ext4 (Fourth Extended Filesystem)
-- Ưu điểm:
-
-    + Hỗ trợ journaling filesystem
-    + Tương thích tốt với Ceph OSD
-
-- Nhược điểm:
-
-    + Không thân thiện bằng XFS cho Ceph
-    + Hạn chế về XATTRs: số lượng bytes lưu trữ XATTRs bị giới hạn
-    + Hiệu năng kém hơn Btrfs và XFS
-    + Không phù hợp làm filesystem chính cho OSD
-
-## Extended Attributes (XATTRs)
-XATTRs là yếu tố then chốt cho hoạt động của Ceph OSD:
-
-- Lưu trữ metadata và trạng thái của objects
-- Cung cấp thông tin nhanh chóng mà không cần đọc toàn bộ object
-- Btrfs và XFS hỗ trợ dung lượng XATTRs lớn hơn `ext4` đáng kể
-- `ext4` bị hạn chế về số byte có thể lưu trong XATTRs, không đủ cho nhiều trường hợp sử dụng
+Lựa chọn phổ biến nhất và ổn định nhất cho OSD trong production thường là XFS 
 
 # Ceph OSD Journal
 Journal là một thành phần quan trọng trong kiến trúc OSD, hoạt động như buffer để tối ưu hiệu năng ghi. Trước khi dữ liệu được ghi vào backing store chính, Ceph ghi dữ liệu vào journal trước.
@@ -289,7 +234,7 @@ BlueStore chia lưu trữ thành các module logic, quản lý thiết bị kh�
 
 ### Các Thành phần Chính
 
-- RocksDB
+- RocksDB - Lưu metadata của object giúp mapping object đến các offset trên disk
    + là kho `key-value` hiệu suất cao nhúng trong BlueStore để quản lý metadata, bao gồm metadata đối tượng, OMAP Ceph, WAL và trạng thái allocator. 
    + Hỗ trợ transaction cho hoạt động ACID trong OSD. 
    + Dữ liệu RocksDB (SST và log) lưu qua BlueFS, cho phép đặt trên thiết bị nhanh hơn.
@@ -297,7 +242,7 @@ BlueStore chia lưu trữ thành các module logic, quản lý thiết bị kh�
     + BlueFS là hệ thống tệp không gian người dùng nhẹ, hỗ trợ RocksDB mà không overhead POSIX. 
     + Xử lý nhu cầu tệp của RocksDB (như WAL, DB, slow DB) với cấu trúc thư mục phẳng, viết append-only và metadata in-memory tải qua replay log khi mount. 
     + Hỗ trợ thu gom rác cho hiệu quả không gian và có thể trải nhiều thiết bị (ví dụ: NVM cho WAL, SSD cho SST nóng, HDD cho dữ liệu lạnh).
-- Thiết bị Khối
+- Block device chính - Lưu object data thực tế : 
     + BlueStore truy cập thiết bị vật lý (HDD/SSD/NVMe) trực tiếp dùng Linux AIO ở không gian người dùng.
     + Viết page-aligned và không buffer. Thread nội bộ aio_thread xử lý hoàn thành qua callback. 
     + Thiết bị có thể phân vùng: chính cho dữ liệu, WAL tùy chọn cho journaling, DB cho metadata RocksDB.
@@ -309,7 +254,7 @@ BlueStore chia lưu trữ thành các module logic, quản lý thiết bị kh�
 ## Quản lý Thiết bị
 - BlueStore hỗ trợ 1-3 thiết bị:
     + Chính (block): Lưu trữ dữ liệu chính.
-    + WAL (block.wal): Log viết trước cho overwrite nhỏ; đồng vị nếu không riêng.
+    + WAL - Write Ahead Log (block.wal): Log viết trước cho overwrite nhỏ; đồng vị nếu không riêng.
     + DB (block.db): Lưu RocksDB; khuyến nghị 1-4% kích thước chính (ví dụ: 40GB cho 1TB chính).
 
 > Cấu hình cho phép phân tầng cho media hỗn hợp, như HDD chính với SSD DB/WAL.

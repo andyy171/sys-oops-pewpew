@@ -1,4 +1,4 @@
-title: Ceph PG inconsistent
+title: "Ceph PG inconsistent"
 level: low
 
 
@@ -69,30 +69,37 @@ ceph osd primary-affinity 24 0
 - Tiến hành chuyển dữ liệu 
 ```bash
 # Hạ giới hạn phục hồi về mức thấp tránh ảnh hưởng đến cụm đang phục vụ :
-ceph tell osd.* injectargs '--osd_max_backfills 1'
-ceph tell osd.* injectargs '--osd_recovery_max_active 1'
-ceph tell osd.* injectargs '--osd_recovery_op_priority 1'
+ceph config set osd osd_recovery_max_active 1
+ceph config set osd osd_max_backfills 1
+ceph config set osd osd_recovery_sleep 0.1
 
 # Đặt cờ cho cụm ngăn Ceph tự ý kích OSD ra khỏi cụm hay chạy tác vụ quét nặng trong lúc di chuyển dữ liệu.
 ## Lưu ý: vẫn mở các cờ tác vụ rebalance và backfilling
-ceph osd set noout
 ceph osd set noscrub
 ceph osd set nodeep-scrub
 
 #  Bắt đầu di chuyển dữ liệu theo từng mốc 
 ## Điều kiện đáp ứng để chuyển mức là ceph-s báo trạng thái các pg vẫn active+clean và hết các tiến trình backfilling
-
-ceph osd reweight 24 0.8
-ceph osd reweight 24 0.5
-ceph osd reweight 24 0.2
-ceph osd reweight 24 0
+ceph osd out 24 
 
 ## Trong quá trình chuyển dữ liệu nếu xuấy hiện slow request thì bật các cờ để tránh ảnh hưởng hệ thống 
-ceph osd set nobackfill
-ceph osd set norebalance
+# ceph osd set nobackfill
+# ceph osd set norebalance
 
 # Sau khi chuyển hoàn toàn dữ liệu của osd sang các osd khác thì dừng osd tránh việc cụm chuyển dữ liệu hay tạo bản sao vào osd :
 ceph osd df | grep osd.24 # Kiểm tra lại thông tin osd 24 để xác nhận
+
+# Chạy lại lệnh repair
+ceph pg repair {pg.id}
+# Down osd 
 systemctl stop ceph-osd@24
 ```
 
+- Sau khi repair xong và down osd bị lỗi thì trạng thái cụm 
+```bash
+ceph osd unset noscrub
+ceph osd unset nodeep-scrub
+ceph config rm osd osd_recovery_max_active
+ceph config rm osd osd_max_backfills
+ceph config rm osd osd_recovery_sleep
+```

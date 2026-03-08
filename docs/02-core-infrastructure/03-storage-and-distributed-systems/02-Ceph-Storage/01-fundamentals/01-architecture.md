@@ -91,10 +91,132 @@ Quy trình đọc dữ liệu trong Ceph cũng tuân theo logic phân tán, cho 
 | **Độ trễ** | Bị giới hạn bởi **bản sao chậm nhất** (`slowest replica`). | Chỉ bị giới hạn bởi tốc độ của **Primary OSD**. |
 | **Hiệu suất** | **Chậm hơn** do yêu cầu đồng bộ hóa. | **Nhanh hơn** (thường gấp 2-3 lần) do truyền tải trực tiếp. |
 
+# Luồng dữ liệu trong Ceph
+(Client → RBD → Object → PG → OSD → /var/lib/ceph/osd)
+1️⃣ Tổng quan kiến trúc
+Client
+   ↓
+RBD (Image)
+   ↓
+Object
+   ↓
+PG (Placement Group)
+   ↓
+OSD
+   ↓
+/var/lib/ceph/osd/
+   ↓
+Disk vật lý
+2️⃣ Giải thích chi tiết từng bước
+🔹 Bước 1: Client ghi dữ liệu
+
+Client có thể là:
+
+VM trong OpenStack
+
+Hypervisor KVM
+
+Server mount RBD
+
+Ứng dụng dùng librbd
+
+Khi client ghi 4KB/1MB dữ liệu vào disk → thực chất đang ghi vào RBD image.
+
+🔹 Bước 2: RBD (RADOS Block Device)
+
+RBD không phải là 1 file lớn duy nhất.
+
+Nó là:
+
+1 logical block device
+
+Được chia thành nhiều object nhỏ
+
+Mặc định object size thường là 4MB (có thể cấu hình)
+
+Ví dụ:
+
+VM disk 40GB
+
+Sẽ bị chia thành hàng ngàn object 4MB
+
+🔹 Bước 3: Object
+
+Mỗi object:
+
+Có tên nội bộ (ví dụ: rbd_data.xxxxx)
+
+Có kích thước cố định
+
+Là đơn vị lưu trữ thực tế trong Ceph
+
+Khi VM ghi block:
+→ RBD xác định block thuộc object nào
+→ Ghi vào object đó
+
+🔹 Bước 4: PG (Placement Group)
+
+Object không ghi trực tiếp xuống OSD.
+
+Trước tiên nó được hash vào 1 PG.
+
+PG là:
+
+Nhóm logic trung gian
+
+Giúp phân phối object đều trong cluster
+
+Giúp recovery và rebalance hiệu quả
+
+Công thức logic:
+
+Object name → hash → PG number → OSD set
+🔹 Bước 5: OSD
+
+PG được gán cho 1 tập OSD theo CRUSH rule.
+
+Ví dụ:
+
+Replication size = 3
+
+PG 1.23 → OSD 3, OSD 7, OSD 12
+
+Một OSD sẽ là primary.
+Các OSD còn lại là replica.
+
+Primary OSD:
+
+Nhận write từ client
+
+Ghi local
+
+Gửi replica sang OSD khác
+
+Xác nhận khi đủ replica
+
+🔹 Bước 6: Lưu xuống /var/lib/ceph/osd/
+
+Bên trong thư mục OSD:
+
+/var/lib/ceph/osd/ceph-3/
+
+Chứa:
+
+Object data
+
+RocksDB metadata (BlueStore)
+
+WAL/DB
+
+Keyring
+
+fsid
+
+⚠️ Bạn sẽ không thấy file VM, mà là object nội bộ.
+
+> Bản chất ceph không lưu file mà nó chỉ lưu giữ các object vì các dữ liệu đã được chia thành các object kích thước 4 MB. Khi cần thì ceph biết chính xác vị trí của các object đó để cung cấp dữ liệu khi cần . RBD chỉ là lớp chuyển dữ liệu thành 
+
 ## Cluster-aware architecture (không có central gateway)
-
-
-
 #### Kiến trúc đa lớp của Ceph 
 Kiến trúc đa lớp của Ceph được thiết kế để tách biệt các dịch vụ người dùng khỏi cơ chế quản lý dữ liệu và lưu trữ vật lý, đảm bảo tính linh hoạt, mở rộng, và độ tin cậy. Kiến trúc này bao gồm ba tầng chính:
 
@@ -117,9 +239,3 @@ Dữ liệu từ các dịch vụ này được chuyển xuống lõi RADOS đ�
 
 ## Scalability principles
 
-
-[**==> Ceph RADOS**](/08-storage-and-distributed-systems/02-Ceph-Storage/00-fundamentals/01-RADOS.md)
-
-[**==> Ceph core services**](/08-storage-and-distributed-systems/02-Ceph-Storage/01-core-service/OSD.md)
-
-[**==> Ceph deployment planning**](/08-storage-and-distributed-systems/02-Ceph-Storage/02-main-concepts/01-Ceph%20deployment%20planning.md)

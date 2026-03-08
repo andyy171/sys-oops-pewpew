@@ -1,23 +1,56 @@
-title: "Tổng hợp các lỗi thường gặp với OSD"
+---
+title : Thao tác vận hành cụm ceph hằng ngày 
 
-# Khi 1 OSD bị down 
+---
 
-- Khi 1 OSD bị down , đầu tiên ta cần xác định OSD bị down đó là OSD nào 
+# Kiểm tra thông số của cluster 
 ```bash
-ceph osd tree
-```
-- Sau đó ta cần kiểm tra logs của OSD bị down đó . Để làm được vậy ta cần tìm được host chứa osd đó 
-```bash
-ceph osd find OSD_ID
-```
-Sau đó từ host của osd kiểm tra log của osd tại  `/var/log/ceph/ceph.log`
-- Thử khởi động lại thủ công OSD 
-```bash
-systemctl restart ceph-osd@OSD_NUMBER
-```
-- Xác thực lại OSD đã lên : `ceph osd tree`
+ceph -s                 # Kiểm tra trạng thái tổng quan của cả cụm
+ceph osd tree           # Kiểm tra trạng thái các osd 
+ceph osd df             # Kiểm tra mức độ sử dụng dung lượng của các osd
+ceph df                 # Kiểm tra mức độ sử dụng dung lượng của cụm và các pools
+ceph osd lspools        # Liệt kê toàn bộ pool với ID
 
-# Trường hợp dữ liệu đang bị lệch giữa các osd 
+```
+
+# Quản lý các Ceph Service
+```bash
+# MON
+systemctl start ceph-mon@NODE_NAME
+systemctl stop ceph-mon@NODE_NAME
+systemctl restart ceph-mon@NODE_NAME
+
+# MGR
+systemctl start ceph-mgr@NODE_NAME
+systemctl stop ceph-mgr@NODE_NAME
+systemctl restart ceph-mgr@NODE_NAME
+ceph mgr MODULE_NAME enable MODULE
+ceph mgr MODULE_NAME disable MODULE
+
+
+# OSD
+ceph osd find OSD.ID
+systemctl start ceph-osd@OSD_NAME
+systemctl stop ceph-osd@OSD_NAME
+systemctl restart ceph-osd@OSD_NAME
+
+
+```
+
+# Quản lý pool
+```bash
+ceph df detail    # Dung lượng sử dụng của cụm và các pool
+
+
+```
+
+
+# Quản lý OSD 
+```bash
+
+```
+
+## Trường hợp dữ liệu đang bị lệch giữa các osd 
 ```bash
 # Sample
 osd df
@@ -66,3 +99,18 @@ ID CLASS WEIGHT  REWEIGHT SIZE    RAW USE DATA    OMAP     META    AVAIL   %USE 
                     TOTAL  56 TiB  32 TiB  32 TiB   27 MiB  62 GiB  24 TiB 57.19
 MIN/MAX VAR: 0.27/1.49  STDDEV: 18.51
 ```
+
+# Kiểm soát danh sách các lỗi 
+```bash
+ceph crash ls              # Liệt kê tất cả các ID lỗi đã ghi nhận
+ceph crash ls-new          # Chỉ liệt kê các lỗi mới (chưa archive)
+ceph crash info <id>       # Xem chi tiết metadata và stack trace của 1 lỗi
+ceph crash stat            # Xem bảng thống kê tóm tắt các vụ crash
+ceph crash post -i <file>  # Thủ công gửi một tệp crash lên cluster (debug)
+ceph crash archive <id>    # Xác nhận và lưu trữ 1 lỗi (để ẩn cảnh báo)
+ceph crash archive-all     # Lưu trữ toàn bộ lỗi để xóa cảnh báo RECENT_CRASH
+ceph crash rm <id>         # Xóa hoàn toàn bản ghi của một lỗi cụ thể
+ceph crash prune <keep>    # Xóa các bản ghi cũ, chỉ giữ lại <keep> ngày gần nhất
+ceph crash json_report <h> # Xuất báo cáo crash trong <h> giờ qua dạng JSON
+```
+
