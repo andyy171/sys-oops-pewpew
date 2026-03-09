@@ -1,7 +1,4 @@
----
-title: Các khái niệm cốt lõi 
-
----
+title: "Các khái niệm cốt lõi" 
 
 # Tổng quan 
 - RADOS (Reliable Autonomic Distributed Object Store) là lớp lưu trữ cốt lõi và nền tảng của toàn bộ hệ thống Ceph Storage. RADOS cung cấp dịch vụ lưu trữ đối tượng phân tán, đáng tin cậy với khả năng tự quản trị và tự phục hồi. Tất cả các phương thức truy cập Ceph như RBD (RADOS Block Device), CephFS (File System), RADOSGW (Object Gateway) và librados đều được xây dựng trên RADOS layer.
