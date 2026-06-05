@@ -1,18 +1,25 @@
 site_name: Andy Nael's Docs
-site_url: https://system-notes.netlify.app 
-site_author: Andy Nael 
-site_description: Tài liệu System Administration và DevOps
-repo_name: SRE
-repo_url: https://github.com/AndyNael/SRE/ 
+site_url: !ENV READTHEDOCS_CANONICAL_URL
+site_author: Andy Nael
+site_description: Tài liệu System Administration, Cloud, Kubernetes và DevOps
+repo_name: AndyNael/SRE
+repo_url: https://github.com/AndyNael/SRE/
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - mathjax.js
 
 theme:
   name: material
-  language: vi 
+  language: vi
   icon:
     logo: material/library
     repo: fontawesome/brands/github
-  favicon: images/favicon.png 
-
+  favicon: images/favicon.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -28,51 +35,40 @@ theme:
       toggle:
         icon: material/weather-sunny
         name: Chuyển sang giao diện sáng
-
   features:
-  - navigation.sections
-  - navigation.tabs.sticky
-  - navigation.top
-  - navigation.tracking
-  - toc.follow
-  - content.code.copy
-  - content.code.annotate
-  - content.tabs.link
-  - search.highlight
-  - search.suggest
-  
-extra_javascript:
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-  - mathjax.js
-# --- PLUGINS ---
+    - navigation.sections
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - search.highlight
+    - search.suggest
+
 plugins:
-  - search 
-  - awesome-pages 
-  - mkdocs-backlinks-plugin
-  - mkdocs-roamlinks-plugin
+  - search
+  - awesome-pages
+  - mkdocs-backlinks
+  - roamlinks
 
 markdown_extensions:
-
+  - admonition
+  - attr_list
   - pymdownx.arithmatex
-
+  - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
-
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
-
   - pymdownx.tabbed:
       alternate_style: true
-
-  - admonition
-  - pymdownx.details
-
   - pymdownx.tasklist:
       custom_checkbox: true
-
-  - attr_list
-
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+hooks:
+  - hooks/noindex.py

@@ -1,4 +1,6 @@
-mkdocs>=1.5.0
-mkdocs-material>=9.4.0
+mkdocs>=1.6.0
+mkdocs-material>=9.5.0
 mkdocs-awesome-pages-plugin>=2.9.0
+mkdocs-backlinks
+mkdocs-roamlinks-plugin
 pymdown-extensions
