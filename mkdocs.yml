@@ -9,43 +9,15 @@ docs_dir: docs
 site_dir: site
 use_directory_urls: true
 
+theme:
+  name: readthedocs
+
+extra_css:
+  - stylesheets/rtd-like.css
+
 extra_javascript:
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
   - mathjax.js
-
-theme:
-  name: material
-  language: vi
-  icon:
-    logo: material/library
-    repo: fontawesome/brands/github
-  favicon: images/favicon.png
-  palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: grey
-      accent: purple
-      toggle:
-        icon: material/weather-night
-        name: Chuyển sang giao diện tối
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: blue-grey
-      accent: lime
-      toggle:
-        icon: material/weather-sunny
-        name: Chuyển sang giao diện sáng
-  features:
-    - navigation.sections
-    - navigation.tabs.sticky
-    - navigation.top
-    - navigation.tracking
-    - toc.follow
-    - content.code.copy
-    - content.code.annotate
-    - content.tabs.link
-    - search.highlight
-    - search.suggest
 
 plugins:
   - search
@@ -70,5 +42,6 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
 hooks:
   - hooks/noindex.py
