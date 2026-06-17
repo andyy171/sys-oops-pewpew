@@ -17,7 +17,7 @@ Kho ghi chú này là bản đồ học và vận hành cho System Engineering, 
 - [Core Infrastructure Overview](./02-core-infrastructure/overview.md)
 - [Linux Operations](./02-core-infrastructure/01-linux/overview.md)
 - [Network](./02-core-infrastructure/02-network/Overview.md)
-- [Storage And Distributed Systems](./02-core-infrastructure/03-storage-and-distributed-systems/overview.md)
+- [Storage And Distributed Systems](./02-core-infrastructure/03-storage-and-distributed-systems/Overview.md)
 - [Storage Fundamentals](./02-core-infrastructure/03-storage-and-distributed-systems/01-storage-fundamentals/overview.md)
 - [Ceph Storage](./02-core-infrastructure/03-storage-and-distributed-systems/05-storage-systems/01-ceph/overview.md)
 - [Windows Server](./02-core-infrastructure/06-windows-server/overview.md)
@@ -43,14 +43,14 @@ Kho ghi chú này là bản đồ học và vận hành cho System Engineering, 
 
 ## 5. Infrastructure Automation And Operations
 
-- [Infrastructure Automation Overview](./05-infrastructure-automation/overview.md)
-- [Observability And Monitoring](./05-infrastructure-automation/01-observability-and-monitoring/overview.md)
-- [Security And Hardening](./05-infrastructure-automation/02-security-and-hardening/overview.md)
-- [CI/CD And DevOps Integration](./05-infrastructure-automation/03-cicd-devops-integration/overview.md)
-- [Infrastructure As Code](./05-infrastructure-automation/04-infrastructure-as-code/overview.md)
-- [Terraform](./05-infrastructure-automation/04-infrastructure-as-code/01-terraform/overview.md)
-- [Python Automation](./05-infrastructure-automation/05-python-automation/overview.md)
-- [Git And Version Control](./05-infrastructure-automation/06-git-and-version-control/overview.md)
+- [Infrastructure Automation Overview](./05-Infrastructure-Automation/overview.md)
+- [Observability And Monitoring](./05-Infrastructure-Automation/01-observability-and-monitoring/overview.md)
+- [Security And Hardening](./05-Infrastructure-Automation/02-security-and-hardening/overview.md)
+- [CI/CD And DevOps Integration](./05-Infrastructure-Automation/03-cicd-devops-integration/overview.md)
+- [Infrastructure As Code](./05-Infrastructure-Automation/04-infrastructure-as-code/overview.md)
+- [Terraform](./05-Infrastructure-Automation/04-infrastructure-as-code/01-terraform/overview.md)
+- [Python Automation](./05-Infrastructure-Automation/05-python-automation/overview.md)
+- [Git And Version Control](./05-Infrastructure-Automation/06-git-and-version-control/overview.md)
 
 ## 6. Programming Languages
 
@@ -66,6 +66,3 @@ Kho ghi chú này là bản đồ học và vận hành cho System Engineering, 
 - [CCNA Advanced Networking And Security](./02-core-infrastructure/02-network/06-ccna-advanced-networking-and-security/overview.md)
 - [Certified OpenStack Administrator Knowledge Path](./04-cloud-edge/02-cloud-ecosystem/openstack/06-certification/certified-openstack-administrator/overview.md)
 
-## Changelog
-
-- [Codex Changelog](./CODEX_CHANGELOG.md)
