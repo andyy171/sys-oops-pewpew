@@ -4,27 +4,21 @@ Kho ghi chú này là bản đồ học và vận hành cho System Engineering, 
 
 ## 1. Architecture And Foundations
 
-- [Architecture Overview](./01-architecture/overview.md)
-- [Architecture Foundations](./01-architecture/00-foundations/overview.md)
-- [Architecture Principles](./01-architecture/01-principles/overview.md)
-- [Design Tradeoffs](./01-architecture/02-tradeoffs/overview.md)
-- [System Patterns](./01-architecture/03-patterns/overview.md)
-- [Reliability And DR](./01-architecture/04-reliability-and-dr/overview.md)
-- [SRE And Operations Principles](./01-architecture/05-sre-and-operations-principles/overview.md)
+- [Platform Engineering Principles](./01-architecture/01-principles/01-platform-engineering-principles.md)
+- [PoC Technical Evaluation](./01-architecture/02-tradeoffs/01-poc-technical-evaluation.md)
+- [Single-Tenant Data Workload](./01-architecture/03-patterns/01-single-tenant-data-workload-pattern.md)
 
 ## 2. Core Infrastructure
 
-- [Core Infrastructure Overview](./02-core-infrastructure/overview.md)
 - [Linux Operations](./02-core-infrastructure/01-linux/overview.md)
 - [Network](./02-core-infrastructure/02-network/Overview.md)
-- [Storage And Distributed Systems](./02-core-infrastructure/03-storage-and-distributed-systems/Overview.md)
-- [Storage Fundamentals](./02-core-infrastructure/03-storage-and-distributed-systems/01-storage-fundamentals/overview.md)
 - [Ceph Storage](./02-core-infrastructure/03-storage-and-distributed-systems/05-storage-systems/01-ceph/overview.md)
-- [Windows Server](./02-core-infrastructure/06-windows-server/overview.md)
+- [Storage Models](./02-core-infrastructure/03-storage-and-distributed-systems/01-storage-fundamentals/01-storage-models-block-file-object.md)
+- [RAID, LVM And Multipath](./02-core-infrastructure/03-storage-and-distributed-systems/01-storage-fundamentals/03-raid-lvm-multipath.md)
+- [Database Backup And Restore](./02-core-infrastructure/04-database-systems/01-database-fundamentals/08-backup-restore-pitr-snapshot-logical-physical.md)
 
 ## 3. Compute And Orchestration
 
-- [Compute And Orchestration Overview](./03-compute-and-orchestration/overview.md)
 - [Compute Platforms](./03-compute-and-orchestration/01-compute-platforms/overview.md)
 - [Docker And Container Runtime](./03-compute-and-orchestration/02-container-runtime/01-docker/overview.md)
 - [Container Orchestration](./03-compute-and-orchestration/03-container-orchestration/overview.md)
@@ -33,7 +27,6 @@ Kho ghi chú này là bản đồ học và vận hành cho System Engineering, 
 
 ## 4. Cloud And Edge
 
-- [Cloud Edge Overview](./04-cloud-edge/overview.md)
 - [Cloud Fundamentals](./04-cloud-edge/01-cloud-fundamentals/overview.md)
 - [Cloud Ecosystem](./04-cloud-edge/02-cloud-ecosystem/overview.md)
 - [AWS](./04-cloud-edge/02-cloud-ecosystem/aws/_index.md)
@@ -43,18 +36,14 @@ Kho ghi chú này là bản đồ học và vận hành cho System Engineering, 
 
 ## 5. Infrastructure Automation And Operations
 
-- [Infrastructure Automation Overview](./05-Infrastructure-Automation/overview.md)
-- [Observability And Monitoring](./05-Infrastructure-Automation/01-observability-and-monitoring/overview.md)
-- [Security And Hardening](./05-Infrastructure-Automation/02-security-and-hardening/overview.md)
-- [CI/CD And DevOps Integration](./05-Infrastructure-Automation/03-cicd-devops-integration/overview.md)
-- [Infrastructure As Code](./05-Infrastructure-Automation/04-infrastructure-as-code/overview.md)
+- [Argo CD GitOps Operations](./05-Infrastructure-Automation/03-cicd-devops-integration/02-continuous-delivery-and-deployment/04-argocd-gitops-operations.md)
+- [CI/CD Threat Model](./05-Infrastructure-Automation/03-cicd-devops-integration/03-automation-pipeline-security/04-ci-cd-threat-model-and-attack-surface.md)
 - [Terraform](./05-Infrastructure-Automation/04-infrastructure-as-code/01-terraform/overview.md)
 - [Python Automation](./05-Infrastructure-Automation/05-python-automation/overview.md)
-- [Git And Version Control](./05-Infrastructure-Automation/06-git-and-version-control/overview.md)
+- [Ansible](./05-Infrastructure-Automation/07-configuration-management/01-ansible/overview.md)
 
 ## 6. Programming Languages
 
-- [Programming Languages Overview](./06-programming-languages/overview.md)
 - [Go Programming](./06-programming-languages/01-go/overview.md)
 - [Python Programming](./06-programming-languages/02-python/overview.md)
 - [C++ Programming](./06-programming-languages/03-cpp/overview.md)
