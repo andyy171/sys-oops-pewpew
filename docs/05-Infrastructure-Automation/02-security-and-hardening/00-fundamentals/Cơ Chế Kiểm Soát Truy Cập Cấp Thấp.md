@@ -1,4 +1,4 @@
-# Mục lục
+﻿# Mục lục
 - [Access Control List (ACL) và Access Control Entry (ACE)](#access-control-list-acl-và-access-control-entry-ace)
     - [Access Control Entry (ACE)](#access-control-entry-ace)
     - [Access Control List (ACL)](#access-control-list-acl)
@@ -10,7 +10,7 @@
 ---
 
 
-# Access Control List (ACL) và Access Control Entry (ACE)
+## Access Control List (ACL) và Access Control Entry (ACE)
 Mọi hệ thống kiểm soát truy cập đều dựa trên việc định nghĩa rõ ràng ai được phép làm gì với tài nguyên nào. Trong Windows, điều này được thực hiện thông qua các danh sách và mục nhập kiểm soát truy cập, giúp hệ thống đánh giá và quyết định quyền hạn một cách có hệ thống.
 
 ---
@@ -33,7 +33,7 @@ ACE là đơn vị nhỏ nhất và cơ bản nhất trong hệ thống kiểm s
 
 - Ví dụ, nếu một ACE từ chối xuất hiện trước, truy cập sẽ bị chặn ngay lập tức, ngay cả khi có ACE cho phép sau đó. Điều này nhấn mạnh tầm quan trọng của việc sắp xếp ACE một cách cẩn thận, thường ưu tiên các quy tắc từ chối trước để tránh lỗ hổng bảo mật. ACL được lưu trữ trong security descriptor của đối tượng, và bạn nên sử dụng các hàm API của Windows (như AddAce hoặc InitializeAcl) để thao tác với chúng, thay vì chỉnh sửa trực tiếp, để tránh lỗi cú pháp.
 
-# Phân Loại ACL Theo Chức Năng
+## Phân Loại ACL Theo Chức Năng
 Trong Windows, ACL được chia thành hai loại chính dựa trên vai trò: một loại tập trung vào việc kiểm soát quyền truy cập thực tế (control), và loại kia dành cho giám sát và ghi log (audit). Sự phân biệt này cho phép quản trị viên không chỉ bảo vệ tài nguyên mà còn theo dõi hoạt động để phát hiện vấn đề.
 
 ## Discretionary Access Control List (DACL) – Kiểm soát Truy cập (Quyền hạn)

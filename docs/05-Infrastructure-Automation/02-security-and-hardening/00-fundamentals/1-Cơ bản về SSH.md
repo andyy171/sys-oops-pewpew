@@ -9,13 +9,13 @@
 
 - Sử dụng lệnh: `systemctl status sshd`(kiểm tra trạng thái, port chạy ssh)
 
-~[](./images/ssh-sample.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-sample.png`.
 
 - Keystore directory: Default dir Windows `C:\Users\<username>\. ssh`, default dir in Linux: `/home/<username>\. ssh`
 
 ---
 ## SSH hoạt động như thế nào 
-![](./images/ssh-mechanism.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-mechanism.png`.
 1. Client gửi yêu cầu kết nối SSH
 - Máy khách (client) khởi tạo một phiên kết nối SSH đến máy chủ (server).
 - Trong yêu cầu này, client thông báo danh tính người dùng và yêu cầu xác thực.
@@ -105,9 +105,9 @@ Sau khi thực hiện lệnh , máy đầu xa sẽ yêu cầu password của use
 - Dịch vụ SSH mặc định hoạt động trên port 22 . Vì là port phổ biến , rất dễ bị kẻ xấu thực hiện các hoạt động dò tìm mật khẩu tự động đăng nhập SSH vào hệ thống .
 
 - Để điều chỉnh port mặc định , xuống dòng 17 , chỉ định port mới , đồng thời bỏ dấu “#” ở đầu dòng :
-![](./images/ssh-port-1.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-port-1.png`.
 - Nếu hệ thống có nhiều hơn 1 địa chỉ IP thì tốt nhất nên chỉ định rõ địa chỉ IP nào sẽ lắng nghe port SSH . Thực hiện sửa đổi ở dòng 19 , đồng thời bỏ dấu “#” ở đầu dòng ( 0.0.0.0 có nghĩa là mọi IP đều lắng nghe SSH ):
-![](./images/ssh-port-2.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-port-2.png`.
 
 ---
 #### Cấu hình thời gian timeout khi user đăng nhập không thành công
@@ -115,13 +115,13 @@ Sau khi thực hiện lệnh , máy đầu xa sẽ yêu cầu password của use
 - Khi 1 user đăng nhập SSH , nếu không chỉ định thông tin user từ đầu thì sẽ hiện ra 1 prompt yêu cầu nhập thông tin user . Sau đó là phần nhập mật khẩu nếu user đó đăng nhập bằng mật khẩu . Ta sẽ quy định thời gian 1 kết nối SSH đợi cho hoạt động đăng nhập user thành công , nếu sau khoảng thời gian này không đăng nhập được thì ngắt kết nối .
 
 - Thay đổi tùy chọn này ở dòng `37 `( mặc định đã được cấu hình là `2 phút` ) : 
-![](./images/ssh-port-3.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-port-3.png`.
 
 #### Không cho đăng nhập bằng user root
 Nếu muốn sử dụng quyền `root` chỉ cần tạo 1 user khác rồi cấp quyền `sudo` cho các lệnh cần thực hiện và sử dụng => Bảo mật hệ thống hơn .
 
 Để cấu hình , tìm đến dòng 38 , sửa “`yes`” thành “`no`” đồng thời bỏ dấu “`#`” ở đầu dòng : 
-![](./images/ssh-port-4.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-port-4.png`.
 
 #### Chế độ “Strict Mode”
 
@@ -131,13 +131,13 @@ Nếu không sử dụng chế độ này ( `no` ) thì SSH sẽ **không kiểm
 => Ép người quản trị phải cấu hình đúng các phân quyền ( permissions ) cho các thư mục / key dùng để đăng nhập SSH .
 
 Thay đổi tùy chọn này ở dòng `39` ( mặc định đã để `yes` ) :
-![](./images/ssh-port-5.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-port-5.png`.
 
 #### Thiết lập số lần đăng nhập sai tối đa
 Nếu đăng nhập sai số lần quy định sẽ ngắt kết nối của Client .
 Thay đổi tùy chọn này ở dòng `40` ( mặc định là `6` ) :
 
-![](./images/ssh-port-6.png)
+> Hình minh họa gốc chưa có trong vault: `ssh-port-6.png`.
 
 #### Thiết lập số phiên đăng nhập SSH tối đa
 - Thực hiện thay đổi ở dòng 41 ( mặc định là 10 ) :
@@ -149,27 +149,27 @@ Thay đổi tùy chọn này ở dòng `40` ( mặc định là `6` ) :
 => Vì vậy nên dùng SSH Key để đăng nhập vào Server cũng như sử dụng nó để xác thực các kết nối từ bên ngoài vào cho an toàn hơn . Đồng thời , nếu có thể nên tắt cấu hình chứng thực mật khẩu .
 
 Thực hiện thay đổi ở dòng `43` và `65` :
-![](./images/ssh-config-1.png )
-![](./images/ssh-config-2.png )
+> Hình minh họa gốc chưa có trong vault: `ssh-config-1.png`.
+> Hình minh họa gốc chưa có trong vault: `ssh-config-2.png`.
 
 #### Tắt log đăng nhập lần cuối
 Thực hiện sửa đổi ở dòng `106` , đồng thời bỏ dấu “#” ở đầu dòng :
-![](./images/ssh-config-3.png )
+> Hình minh họa gốc chưa có trong vault: `ssh-config-3.png`.
 
 #### Cấu hình thời gian ngắt kết nối SSH khi user không hoạt động
 - Có thể quy định thời gian timeout mà 1 kết nối SSH đến Server Linux không nhận được bất kỳ hoạt động tương tác nào trên Terminal SSH . Lúc này nếu quá thời gian quy định thì SSH Server sẽ tự ngắt kết nối từ các user không tương tác .
 - Thực hiện thay đổi ở dòng `112` và `113` , đồng thời bỏ dấu “`#`” ở đầu dòng :
-![](./images/ssh-config-4.png )
+> Hình minh họa gốc chưa có trong vault: `ssh-config-4.png`.
 
 
 ####  Giới hạn User/Group sử dụng cho SSH
 - Mặc định SSH Server cho phép tất cả các user local đăng nhập qua SSH . Nhưng đôi khi cần chặn không cho đăng nhập với 1 số user nhất định hoặc 1 nhóm cụ thể .
 
 - Để cho phép user hoặc group được đăng nhập SSH , thực hiện thêm vào 1 số dòng sau vào cuối file :
-![](./images/ssh-config-5.png )
+> Hình minh họa gốc chưa có trong vault: `ssh-config-5.png`.
 
 - Để không cho phép user hoặc group được đăng nhập SSH , thực hiện thêm vào 1 số dòng sau vào cuối file :
-![](./images/ssh-config-6.png )
+> Hình minh họa gốc chưa có trong vault: `ssh-config-6.png`.
 
 ### Kiểm tra lại file cấu hình
 Thực hiện kiểm tra lại quá trình sửa đổi file `sshd_config` xem có sai không , nếu sai sẽ báo lỗi :  `sshd -t`
