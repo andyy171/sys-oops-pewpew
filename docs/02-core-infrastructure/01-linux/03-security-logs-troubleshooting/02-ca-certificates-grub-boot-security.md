@@ -10,6 +10,21 @@ Root CA trust store quyết định hệ thống tin cậy CA nào khi kiểm tr
 
 Không import CA không rõ nguồn. CA được trust có thể ký certificate cho nhiều service.
 
+## 1.1 PKI Chain Of Trust
+
+PKI gắn public key với identity thông qua certificate. Trust không nằm ở bản thân key, mà nằm ở chain từ leaf certificate lên intermediate CA và root CA đã có trong trust store.
+
+![](./images/pki-chain-of-trust.png)
+
+Mental model khi debug TLS:
+
+1. Leaf certificate đại diện cho service, ví dụ `www.example.com`.
+2. Intermediate CA ký leaf certificate và thường được server gửi kèm trong chain.
+3. Root CA nằm trong OS/browser/application trust store và là anchor cuối cùng.
+4. Client verify chữ ký, thời hạn, hostname/SAN, key usage và trạng thái revocation nếu policy yêu cầu.
+
+Nếu thiếu intermediate, hostname không khớp SAN, certificate hết hạn, key usage sai hoặc root CA chưa được trust, app có thể báo lỗi TLS dù service vẫn đang listen trên port 443.
+
 ## 2. Debian/Ubuntu: `update-ca-certificates`
 
 Copy CA dạng PEM/CRT vào:
@@ -58,7 +73,46 @@ keytool -importcert \
   -keystore truststore.jks
 ```
 
-## 5. Boot/GRUB Security Overview
+## 5. GnuPG Key Workflow
+
+GnuPG/GPG thường dùng để ký, mã hóa hoặc xác minh artifact, repository metadata và file trao đổi giữa người vận hành. Khác với CA trust store của TLS, GPG dựa trên key pair và trust model riêng.
+
+Tạo key mới:
+
+```bash
+gpg --full-generate-key
+gpg --list-keys
+gpg --list-secret-keys
+```
+
+Export public key để chia sẻ:
+
+```bash
+gpg --armor --export user@example.com > user-public.asc
+```
+
+Import public key của người khác hoặc project:
+
+```bash
+gpg --import project-public.asc
+gpg --fingerprint project@example.com
+```
+
+Ký và kiểm tra file:
+
+```bash
+gpg --armor --detach-sign artifact.tar.gz
+gpg --verify artifact.tar.gz.asc artifact.tar.gz
+```
+
+Production notes:
+
+- Luôn verify fingerprint qua kênh độc lập trước khi trust key.
+- Tạo và lưu revocation certificate/offline backup cho key quan trọng.
+- Không upload private key lên server dùng chung.
+- Với package repository, ưu tiên cơ chế keyring/repository chính thức thay vì import key rời rạc không kiểm soát.
+
+## 6. Boot/GRUB Security Overview
 
 GRUB cho phép chỉnh kernel parameter khi boot. Điều này hữu ích khi rescue hệ thống, nhưng cũng là rủi ro nếu attacker có console access.
 
@@ -70,7 +124,7 @@ Biện pháp hardening:
 - Bật Secure Boot nếu môi trường hỗ trợ và quy trình vận hành rõ.
 - Giới hạn boot từ USB/network trong firmware.
 
-## 6. Reset Root Password Qua GRUB
+## 7. Reset Root Password Qua GRUB
 
 Cảnh báo:
 
@@ -107,7 +161,7 @@ reboot
 
 Ubuntu/Debian thường dùng recovery mode hoặc init shell tùy version. Cần theo tài liệu distro đang vận hành.
 
-## 7. GRUB Password
+## 8. GRUB Password
 
 Tạo password hash:
 
@@ -143,7 +197,7 @@ Production notes:
 - Lưu credential trong password vault.
 - Có out-of-band recovery plan nếu GRUB config lỗi.
 
-## 8. Troubleshooting TLS Trust
+## 9. Troubleshooting TLS Trust
 
 ```bash
 openssl s_client -connect server.example.com:443 -servername server.example.com -showcerts
@@ -158,3 +212,15 @@ Checklist:
 - Root/intermediate CA đã import đúng store chưa.
 - App có dùng trust store riêng không.
 - Container image có CA bundle mới không.
+
+## 10. CSR, Issuance Va Renewal Guardrails
+
+CSR chứa public key và identity request như domain/organization. Private key không được gửi cho CA. CA xác minh domain hoặc organization tùy loại certificate rồi ký certificate trả lại.
+
+Production guardrails:
+
+- Generate private key trên host hoặc HSM/KMS phù hợp, không gửi private key qua ticket/chat/email.
+- Với public endpoint, ưu tiên ACME/Let's Encrypt hoặc automation tương đương nếu policy cho phép, nhưng phải monitor renewal vì certificate ngắn hạn sẽ gây outage nếu job fail.
+- Với internal PKI, bảo vệ root CA offline nếu có thể; dùng intermediate CA cho issuance hằng ngày.
+- Ghi owner cho từng certificate: service, domain/SAN, issuer, expiry, private-key location, renewal method và rollback contact.
+- Khi private key nghi lộ, revoke/replace certificate và rotate credential/session liên quan; chỉ renew certificate không đủ nếu key cũ đã compromise.

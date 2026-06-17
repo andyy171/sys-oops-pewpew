@@ -11,6 +11,18 @@ Container và virtualization dựa trên các cơ chế isolation khác nhau:
 
 Network namespace lab thực hành nằm ở [SSH, JumpHost, LLDP, Bridge và Network Namespace](../02-storage-networking/05-ssh-jumphost-lldp-bridge-netns.md). File này tập trung vào concept isolation/virtualization.
 
+## 1.1 VM, Hypervisor Và Container Khác Nhau Thế Nào
+
+VM mô phỏng một máy hoàn chỉnh: guest có kernel riêng, device ảo, firmware/boot flow riêng và lifecycle gần giống host vật lý. Container dùng chung kernel với host, cô lập bằng namespace/cgroup/rootfs và thường đóng gói một app hoặc app stack.
+
+| Mô hình | Chạy ở đâu | Đặc điểm vận hành |
+| --- | --- | --- |
+| Type 1 hypervisor | Trực tiếp trên hardware hoặc lớp rất sát hardware | Phù hợp workload production cần isolation mạnh, quản lý resource và VM lifecycle rõ |
+| Type 2 hypervisor | Như một application trên host OS | Phù hợp lab/dev desktop; phụ thuộc nhiều vào host OS |
+| Container engine | Trên Linux host/kernel hiện tại | Nhanh, nhẹ, tốt cho app packaging, nhưng không phải boundary mạnh như VM |
+
+Vì vậy đừng coi container là VM nhỏ. Khi cần chạy workload không tin cậy, kernel khác, driver/kernel module riêng hoặc hard multi-tenant isolation, VM thường là boundary rõ hơn. Khi cần packaging nhanh, rollout app, CI/CD hoặc density cao, container phù hợp hơn.
+
 ## 2. Namespace
 
 Namespace cô lập tài nguyên kernel theo từng loại:
@@ -39,7 +51,44 @@ Chạy process trong namespace mới:
 sudo unshare --fork --pid --mount-proc bash
 ```
 
-## 3. cgroup
+## 3. chroot
+
+`chroot` đổi root directory nhìn thấy bởi process hiện tại và process con. Process bên trong chroot không nhìn thấy path bên ngoài cây root mới theo cách thông thường, nhưng chroot không phải sandbox security hoàn chỉnh như container hoặc VM.
+
+Use case phổ biến:
+
+- Rescue hệ thống không boot được từ Live ISO.
+- Reinstall bootloader hoặc rebuild initramfs.
+- Sửa package/config khi root filesystem được mount từ môi trường khác.
+- Build/test phần mềm trong một root filesystem tách biệt ở mức cơ bản.
+
+Workflow rescue thường gặp:
+
+```bash
+sudo mount /dev/<root-partition> /mnt/sysroot
+sudo mount -t proc proc /mnt/sysroot/proc
+sudo mount --rbind /sys /mnt/sysroot/sys
+sudo mount --rbind /dev /mnt/sysroot/dev
+sudo mount --rbind /run /mnt/sysroot/run
+sudo cp /etc/resolv.conf /mnt/sysroot/etc/resolv.conf
+sudo chroot /mnt/sysroot /bin/bash
+```
+
+Sau khi hoàn tất:
+
+```bash
+exit
+sudo umount -R /mnt/sysroot
+```
+
+Lưu ý vận hành:
+
+- Kiến trúc CPU/userland của môi trường rescue và root target phải tương thích.
+- Kernel module cần dùng phải được load từ kernel đang chạy, không phải kernel của root target.
+- Mount `proc`, `sys`, `dev`, `run` giúp tool trong chroot nhìn thấy runtime API cần thiết.
+- Không xem chroot là boundary chống attacker có quyền root.
+
+## 4. cgroup
 
 cgroup giới hạn, ưu tiên và đo tài nguyên như CPU, memory, IO, pids.
 
@@ -163,7 +212,7 @@ MemoryMax=100M
 
 Docker/containerd/Kubernetes thường không tự ý tranh quyền quản lý cgroup với systemd. Trong production, nên thống nhất cgroup driver và tránh vừa thao tác trực tiếp `cgroupfs`, vừa để systemd/container runtime quản lý cùng một subtree.
 
-## 4. Docker/Podman Basic
+## 5. Docker/Podman Basic
 
 ```bash
 docker ps
@@ -191,7 +240,36 @@ podman generate systemd --new --name <container>
 
 Rootless Podman giúp giảm rủi ro chạy container bằng root.
 
-## 5. Container Log, Storage và Network Overview
+### Docker Runtime Chain Và Socket Risk
+
+Docker trên Linux hiện đại thường là một control plane nhỏ phía trên runtime chain:
+
+```text
+docker CLI
+-> Docker daemon
+-> containerd
+-> runc / OCI runtime
+-> Linux namespaces, cgroups, mounts, capabilities, seccomp
+```
+
+Khi debug container, cần tách lỗi ở tầng nào:
+
+- Docker daemon không nhận lệnh: kiểm tra `systemctl status docker`, socket, permission group và daemon log.
+- Image pull/build lỗi: kiểm tra registry, DNS, proxy, certificate, credential và disk space.
+- Container start rồi exit: kiểm tra entrypoint, command, environment, mount, permission và `docker logs`.
+- App chạy nhưng không vào được: kiểm tra port publishing, container network, host firewall và process listen bên trong container.
+
+```bash
+systemctl status docker
+docker info
+docker inspect <container>
+docker logs --tail=200 <container>
+docker exec -it <container> sh
+```
+
+Docker socket có quyền điều khiển daemon, nên mount `/var/run/docker.sock` vào container gần tương đương trao quyền quản trị host qua Docker API. Chỉ dùng pattern này cho tooling đã tin cậy, giới hạn host, audit image/source và ưu tiên cơ chế ít quyền hơn nếu có. Với CI runner, build agent hoặc automation, tách runner theo trust boundary và không dùng cùng daemon cho workload production lẫn job không tin cậy.
+
+## 6. Container Log, Storage và Network Overview
 
 Log:
 
@@ -212,7 +290,7 @@ Network:
 - Host network: container dùng network namespace của host.
 - Overlay network: multi-host container network, thường qua orchestrator.
 
-## 6. KVM Overview
+## 7. KVM Overview
 
 KVM là hypervisor trong Linux kernel, cho phép chạy VM với hardware virtualization.
 
@@ -221,7 +299,11 @@ Kiểm tra CPU hỗ trợ:
 ```bash
 egrep -c '(vmx|svm)' /proc/cpuinfo
 lsmod | grep kvm
+lscpu
+virt-what 2>/dev/null || true
 ```
+
+`vmx` là Intel VT-x, `svm` là AMD-V. Nếu thấy `hypervisor` flag, host hiện tại có thể đang là guest VM; lúc đó nested virtualization còn phụ thuộc cấu hình hypervisor bên ngoài. BIOS/UEFI có thể tắt virtualization extension dù CPU hỗ trợ, nên khi KVM không hoạt động cần kiểm tra cả firmware setting.
 
 Ví dụ tạo VM ở mức overview:
 
@@ -241,7 +323,7 @@ Package thường gặp:
 - `virt-install`
 - `virt-manager`
 
-## 7. libvirt và virsh
+## 8. libvirt và virsh
 
 ```bash
 systemctl status libvirtd 2>/dev/null || systemctl status virtqemud
@@ -267,7 +349,35 @@ virsh net-info default
 virsh net-dumpxml default
 ```
 
-## 8. Virtual Networking
+## 8.1 VM Clone, Template Và Identity
+
+Clone/template giúp tạo VM nhanh, nhưng Linux guest cần được làm sạch identity trước khi đưa vào network production. Sau khi clone, kiểm tra:
+
+- hostname;
+- static IP hoặc DHCP reservation;
+- NIC MAC address;
+- `/etc/machine-id`;
+- `/var/lib/dbus/machine-id`;
+- SSH host keys nếu image được build sai quy trình;
+- application-specific identity như agent ID, monitoring ID, cluster node ID.
+
+Ví dụ regenerate machine-id trong lab:
+
+```bash
+sudo rm -f /etc/machine-id
+sudo systemd-machine-id-setup
+sudo dbus-uuidgen --ensure=/var/lib/dbus/machine-id
+```
+
+Không chạy máy clone song song với máy gốc nếu chưa xử lý hostname/IP/MAC/machine-id; lỗi duplicate identity có thể trở thành sự cố DNS, DHCP, monitoring hoặc cluster membership.
+
+OVF/OVA là format đóng gói VM để export/import giữa hypervisor hỗ trợ chuẩn tương ứng. Sau khi import OVA/OVF, vẫn phải xử lý identity như clone: hostname, MAC, static IP, machine-id, SSH host key, agent ID và application-specific UUID.
+
+P2V chuyển một máy vật lý thành VM. Đây không chỉ là copy disk: cần kiểm tra driver/initramfs, boot mode BIOS/UEFI, network naming, fstab/UUID, license binding, performance profile, backup agent và monitoring identity. Luôn test boot trong môi trường cô lập trước khi đưa VM P2V vào network production.
+
+`cloud-init` là cơ chế chuẩn để cá nhân hóa image/instance ở lần boot đầu: hostname, user, SSH key, network config, package, script bootstrap. Với image dùng lại nhiều lần, giữ image càng generic càng tốt và đưa khác biệt môi trường qua metadata/user-data thay vì bake thủ công vào từng VM.
+
+## 9. Virtual Networking
 
 Mode thường gặp:
 
@@ -287,7 +397,7 @@ virsh net-list --all
 journalctl -u libvirtd 2>/dev/null || journalctl -u virtqemud
 ```
 
-## 9. Production Notes
+## 10. Production Notes
 
 - Container không phải security boundary tuyệt đối như VM.
 - Không chạy privileged container nếu không cần.

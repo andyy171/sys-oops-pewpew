@@ -1,1 +1,0 @@
-![](/00-fundamentals/images/list-port-thong-dung.jpg)

@@ -116,6 +116,7 @@ Checks:
 ip addr
 ip route
 sudo ss -tulpn
+systemctl list-sockets --all --no-pager --full
 sudo nft list ruleset 2>/dev/null
 sudo iptables -L -n -v 2>/dev/null
 sudo firewall-cmd --list-all 2>/dev/null
@@ -129,6 +130,75 @@ SSH baseline:
 - Ưu tiên key-based auth.
 - Giới hạn source IP bằng firewall/security group nếu có thể.
 - Log authentication phải được giữ đủ lâu để điều tra.
+
+### Service Exposure Audit
+
+Audit exposure cần nhìn từ nhiều góc, vì `localhost`, IP thật, firewall host và socket activation có thể cho kết quả khác nhau.
+
+Read-only checks:
+
+```bash
+sudo ss -tulpn
+sudo lsof -iTCP -sTCP:LISTEN
+sudo lsof -iUDP
+sudo fuser -vn tcp 22
+systemctl list-sockets --all --no-pager --full
+systemctl list-unit-files --type=socket --no-pager
+systemctl --type=service --state=running --no-pager
+```
+
+Nếu dùng `nmap`, scan phạm vi đã được phê duyệt và ghi rõ source scan:
+
+```bash
+nmap -sT 127.0.0.1
+nmap -sT <server-ip>
+sudo nmap -sU 127.0.0.1
+sudo nmap -sU <server-ip>
+```
+
+Diễn giải:
+
+- Scan `127.0.0.1` cho biết service đang listen từ góc nhìn local host, không chứng minh service reachable từ mạng ngoài.
+- Scan `<server-ip>` từ cùng zone mạng giúp kiểm tra firewall/routing thực tế hơn.
+- UDP scan dễ chậm và nhiễu hơn TCP; chỉ chạy khi có mục tiêu rõ.
+- `systemd.socket` enabled nghĩa là socket activation đang được quản lý, không đồng nghĩa service chính luôn chạy.
+- `lsof` và `fuser` hữu ích khi cần nối port về process/PID/user để tìm owner vận hành.
+
+Disabling workflow:
+
+```bash
+sudo systemctl status <service>
+sudo systemctl stop <service>
+sudo systemctl status <service>
+sudo systemctl disable <service>
+systemctl is-enabled <service>
+```
+
+Guardrails:
+
+- Đối chiếu danh sách required services theo role trước khi stop/disable.
+- Với service remote access, firewall, DNS, NTP, storage hoặc monitoring agent, cần maintenance window, console/out-of-band access và rollback.
+- Sau khi disable, validate lại bằng `ss`, `systemctl`, log service phụ thuộc và synthetic check từ đúng client path.
+
+### Legacy Network Access Controls
+
+`xinetd` và TCP Wrappers vẫn có thể xuất hiện trên hệ legacy. Với hệ mới, ưu tiên firewall, service config, IAM/bastion và systemd socket/service policy.
+
+Checks:
+
+```bash
+test -f /etc/xinetd.conf && cat /etc/xinetd.conf
+ls -la /etc/xinetd.d 2>/dev/null
+test -f /etc/hosts.allow && cat /etc/hosts.allow
+test -f /etc/hosts.deny && cat /etc/hosts.deny
+ldd "$(command -v sshd)" 2>/dev/null | grep libwrap
+```
+
+Production notes:
+
+- Trong `/etc/xinetd.d/<service>`, `disable = yes` tắt service do `xinetd` quản lý; thay đổi cần reload/restart `xinetd` và test lại port.
+- TCP Wrappers kiểm `/etc/hosts.allow` trước, rồi `/etc/hosts.deny`; nếu không match ở cả hai thì thường allow. Vì vậy policy deny-default kiểu `ALL: ALL` trong `hosts.deny` chỉ an toàn khi allowlist đã được kiểm chứng.
+- Không dựa vào TCP Wrappers cho control mới vì nhiều distro/service không còn build với `libwrap`.
 
 ## Software Management Baseline
 

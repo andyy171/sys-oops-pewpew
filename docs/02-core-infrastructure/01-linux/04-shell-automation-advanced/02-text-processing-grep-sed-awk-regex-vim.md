@@ -34,6 +34,20 @@ grep -A 3 -B 3 "panic" kernel.log
 grep -C 5 "Exception" app.log
 ```
 
+Trong script, `grep` cũng là một primitive điều kiện:
+
+- exit code `0`: có match.
+- exit code `1`: không có match.
+- exit code lớn hơn `1`: lỗi đọc file, pattern sai, hoặc lỗi runtime khác.
+
+Vì vậy không nên gom mọi non-zero thành "không tìm thấy" trong automation production. Nếu chỉ cần kiểm tra có match, dùng `-q` thay vì redirect output thủ công:
+
+```bash
+if grep -Eq '^(ERROR|WARN)' app.log; then
+  echo "log has error-like entries"
+fi
+```
+
 ## 4. `sed`
 
 In dòng:
@@ -106,11 +120,111 @@ awk '{print NF, $0}' file.txt
 awk 'END {print NR}' file.txt
 ```
 
-## 6. `cut`, `sort`, `uniq`, `wc`, `head`, `tail`
+## 6. `sed` Addressing Và Command Quan Trọng
+
+`sed` mặc định áp command cho mọi dòng và in kết quả ra `STDOUT`, không sửa file gốc. Muốn giới hạn vùng xử lý, dùng address:
+
+```bash
+sed '2s/old/new/' file.txt
+sed '2,5s/old/new/g' file.txt
+sed '/server_name/s/example.com/example.net/' nginx.conf
+sed '2,$s/debug/info/g' app.conf
+```
+
+Substitution flags:
+
+| Flag | Ý nghĩa |
+|---|---|
+| `g` | thay toàn bộ occurrence trên dòng |
+| `2` | chỉ thay occurrence thứ 2 trên dòng |
+| `p` | print dòng đã thay, thường đi với `-n` |
+| `w file` | ghi dòng đã thay hoặc match ra file |
+
+Ví dụ:
+
+```bash
+sed -n 's/ERROR/WARN/p' app.log
+sed -n '/timeout/w timeout-lines.log' app.log
+```
+
+Các command chỉnh dòng:
+
+```bash
+sed '/DEBUG/d' app.log
+sed '1i\# generated file' config.conf
+sed '$a\# end of file' config.conf
+sed '/^Port /c\Port 2222' sshd_config
+```
+
+Khi thay path hoặc URL, đổi delimiter để dễ đọc:
+
+```bash
+sed 's!/var/www/html!/srv/app/current!g' nginx.conf
+```
+
+Guardrails:
+
+- Test output không ghi file trước: `sed '...' file | less`.
+- Với config production, dùng `sed -i.bak` hoặc ghi ra file mới rồi diff.
+- Không chạy `sed 'd' file` nếu chưa có address; output sẽ rỗng.
+- Cẩn thận range theo pattern: nếu stop pattern không xuất hiện, `sed` có thể áp dụng đến cuối stream.
+- Sau khi sửa config bằng `sed`, chạy validator như `sshd -t`, `nginx -t`, `named-checkconf` trước khi reload service.
+
+## 7. `awk/gawk` Program Model
+
+`awk` xử lý dữ liệu theo mô hình:
+
+```text
+BEGIN -> đọc từng dòng -> tách field -> chạy rule/action -> END
+```
+
+Các biến built-in hay dùng:
+
+| Biến | Ý nghĩa |
+|---|---|
+| `$0` | toàn bộ dòng hiện tại |
+| `$1`, `$2` | field thứ 1, thứ 2 |
+| `FS` | input field separator |
+| `OFS` | output field separator |
+| `NR` | số dòng đã đọc |
+| `NF` | số field của dòng hiện tại |
+
+Ví dụ report có header/footer:
+
+```bash
+awk -F: '
+BEGIN {
+  print "user shell"
+}
+{
+  print $1, $7
+}
+END {
+  print "total users:", NR
+}' /etc/passwd
+```
+
+Truyền biến từ Bash vào `awk` bằng `-v`:
+
+```bash
+threshold=80
+df -P | awk -v threshold="$threshold" 'NR > 1 {
+  usage=$5
+  gsub("%", "", usage)
+  if (usage >= threshold) print "WARN", $6, $5
+}'
+```
+
+Khi dữ liệu có delimiter rõ như `/etc/passwd`, dùng `-F`. Khi dữ liệu là CSV thật có quote/escape, đừng parse bằng `-F,` đơn giản nếu độ chính xác quan trọng; dùng parser phù hợp hơn.
+
+## 8. `cut`, `sort`, `uniq`, `wc`, `head`, `tail`
 
 ```bash
 cut -d: -f1 /etc/passwd
 sort names.txt
+sort -n numbers.txt
+sort -k2,2 data.txt
+sort -t: -k3,3n /etc/passwd
 sort -u names.txt
 uniq -c sorted.txt
 wc -l app.log
@@ -119,13 +233,42 @@ tail -50 app.log
 tail -f app.log
 ```
 
+Khi file có ký tự ẩn, tab, newline khác thường hoặc line quá dài, dùng lệnh quan sát trước khi sửa:
+
+```bash
+cat -A file.txt
+cat -v file.txt
+od -c file.txt | head
+wc -L file.txt
+```
+
+`cat -A`/`cat -v` giúp thấy non-printing characters; `od -c` hữu ích khi nghi ngờ encoding hoặc byte lạ; `wc -L` giúp phát hiện dòng dài bất thường sau khi sửa config. Với file lớn, ưu tiên pager và lệnh lấy mẫu thay vì `cat` toàn bộ:
+
+```bash
+less /var/log/app.log
+head -100 /var/log/app.log
+tail -100 /var/log/app.log
+journalctl -u app.service -f
+```
+
 Top IP trong access log:
 
 ```bash
 awk '{print $1}' access.log | sort | uniq -c | sort -nr | head
 ```
 
-## 7. Regex Cơ Bản
+`sort` mặc định so sánh theo chuỗi ký tự, nên `10` có thể đứng trước `2`. Khi dữ liệu là số, dùng `sort -n`; khi dữ liệu có field rõ, dùng `-t` để chọn delimiter và `-k` để chọn key. Nếu muốn ghi kết quả ra file, ưu tiên redirect sang file mới hoặc dùng `sort -o output.txt input.txt` thay vì ghi đè nhầm input.
+
+`uniq` chỉ gom các dòng trùng lặp liền kề. Nếu cần đếm toàn bộ giá trị trùng trong file/log, thường phải `sort` trước rồi mới `uniq -c`; nếu thứ tự gốc là tín hiệu quan trọng, đừng sort trực tiếp trên evidence duy nhất, hãy ghi output sang file phân tích riêng.
+
+Với checksum file, `md5sum` còn hữu ích để phát hiện lỗi truyền tải vô tình nhưng không nên dùng làm bằng chứng chống chỉnh sửa ác ý. Khi cần kiểm tra integrity ở ngữ cảnh bảo mật, ưu tiên `sha256sum` hoặc `sha512sum` và lấy checksum từ kênh tin cậy:
+
+```bash
+sha256sum artifact.tar.gz
+sha256sum -c artifact.tar.gz.sha256
+```
+
+## 9. Regex Cơ Bản
 
 | Pattern | Ý nghĩa |
 | --- | --- |
@@ -148,7 +291,9 @@ grep -E ' 5[0-9]{2} ' access.log
 grep -E 'error|failed|timeout' app.log
 ```
 
-## 8. Vim Cơ Bản Cho Sysadmin
+Quote regex bằng single quote khi không cần shell expand biến. Shell xử lý glob trước khi chạy command, còn regex do tool như `grep`, `sed`, `awk` diễn giải; ví dụ `*.log` trong shell là danh sách filename, còn trong regex `*` lặp lại token đứng trước nó.
+
+## 10. Vim Cơ Bản Cho Sysadmin
 
 Mở file:
 
@@ -173,7 +318,29 @@ Phím/lệnh cơ bản:
 
 Production note: với file critical như sudoers, dùng tool validate như `visudo` thay vì `vim /etc/sudoers` trực tiếp.
 
-## 9. Lab Parse Log
+## 11. Nano Cơ Bản Cho Sysadmin
+
+`nano` đơn giản hơn `vim` và hữu ích khi cần sửa nhanh file nhỏ trên host không có GUI. Ký hiệu `^X` trong giao diện nano nghĩa là `Ctrl+X`.
+
+```bash
+nano /etc/hosts
+```
+
+Phím tối thiểu cần nhớ:
+
+| Phím | Ý nghĩa |
+| --- | --- |
+| `Ctrl+O` | Ghi buffer ra file |
+| `Enter` | Xác nhận tên file khi save |
+| `Ctrl+X` | Thoát |
+| `Ctrl+W` | Tìm kiếm |
+| `Ctrl+K` | Cut dòng hiện tại |
+| `Ctrl+U` | Paste nội dung đã cut |
+| `Ctrl+G` | Mở help |
+
+Với file config quan trọng, thói quen an toàn vẫn giống mọi editor khác: backup trước, sửa ít, validate config, rồi reload service nếu cần.
+
+## 12. Lab Parse Log
 
 Giả sử access log có format Nginx/Apache phổ biến.
 

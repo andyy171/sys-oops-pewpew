@@ -68,12 +68,35 @@ find /var/log -type f -mtime +7 -print
 find /srv/app -type f -size +100M -print
 grep -Rni --exclude-dir=.git "error" /var/log
 locate nginx.conf
+locate -b '\nginx.conf'
 updatedb
 which nginx
 whereis nginx
+type -a nginx
 ```
 
 Không dùng `find ... -delete` ngay ở lần đầu. Hãy `-print` để xác nhận danh sách trước, sau đó mới đổi sang action phá hủy nếu cần.
+
+Chọn công cụ tìm kiếm theo tín hiệu cần lấy:
+
+| Công cụ | Khi dùng |
+| --- | --- |
+| `which` | Muốn biết executable nào sẽ được shell chạy theo `PATH` |
+| `whereis` | Muốn tìm binary, source/man page liên quan theo database hệ thống |
+| `locate` | Muốn tìm rất nhanh theo database đã index trước |
+| `find` | Muốn quét thật filesystem hiện tại theo type, size, mtime, owner, permission |
+| `type -a` | Muốn biết shell sẽ hiểu tên lệnh là alias, function, builtin hay executable |
+
+`locate` có thể trả kết quả cũ nếu database chưa cập nhật. `find` chậm hơn nhưng phản ánh trạng thái filesystem thực tế tại thời điểm chạy.
+
+Ví dụ audit bằng metadata:
+
+```bash
+find / -xdev \( -nouser -o -nogroup \) -ls 2>/dev/null
+find /usr/bin -xdev -perm /4000 -type f -ls 2>/dev/null
+```
+
+Với `find`, luôn nhóm điều kiện bằng `\(...\)` khi kết hợp nhiều biểu thức với `-o`/`-a` để tránh kết quả rộng hơn dự kiến.
 
 ## Archive Và Compression
 
@@ -84,6 +107,7 @@ tar -xzf etc-backup.tgz -C /tmp/restore
 gzip app.log
 gunzip app.log.gz
 xz large.log
+unxz large.log.xz
 zip -r site.zip public/ -x "*.git*"
 unzip site.zip -d /tmp/site
 ```
@@ -354,7 +378,12 @@ unalias ll
 printf "%s\n" "hello"
 screen -S maint
 screen -r maint
+tmux new -s maint
+tmux ls
+tmux attach -t maint
 ```
+
+`screen` và `tmux` hữu ích khi cần giữ session quan sát hoặc thao tác thủ công qua SSH. Tuy vậy, chúng không thay thế service manager: job production dài hạn nên chạy bằng `systemd` service/timer, queue worker hoặc scheduler có log/restart/dependency rõ ràng. Với lệnh thay đổi trạng thái trong `tmux`/`screen`, vẫn phải ghi lại command, output và rollback trong ticket/runbook.
 
 Bash scripting building blocks:
 
@@ -379,7 +408,7 @@ Với script vận hành, ưu tiên `set -euo pipefail` khi phù hợp, quote bi
 
 Một số lệnh trong inbox không nên trở thành trọng tâm của Linux server operations:
 
-- Printer và desktop GUI: `lpadmin`, `xrandr`, `gsettings`, `gnome-session-quit`.
+- Printer và desktop GUI: `lpadmin`, `xrandr`, `gsettings`, `gnome-session-quit` nên đặt ở [Linux GUI, Localization Và Printing](../01-core-system/07-linux-gui-localization-printing.md) khi cần chi tiết.
 - Audio/Bluetooth: `alsamixer`, `pactl`, `bluetoothctl`, `hciconfig`.
 - Database CLI: `mysql`, `mysqldump`, `psql`, `pg_dump` nên đặt trong knowledge base database khi cần chi tiết.
 - Cloud vendor CLI như `aws` nên đặt trong cloud/vendor operations khi cần chi tiết.
@@ -394,4 +423,3 @@ Một số lệnh trong inbox không nên trở thành trọng tâm của Linux 
 - Có validation sau thay đổi không?
 - Có rollback hoặc out-of-band access nếu mất network không?
 - Có cần giữ evidence trước khi restart hoặc cleanup không?
-

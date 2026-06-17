@@ -86,6 +86,8 @@ Không commit secret, token, private key, password hoặc customer data.
 
 ## 4. Ansible Inventory
 
+Ansible nen duoc nhin nhu configuration management: inventory chon target, playbook/module mo ta desired state, remote host tra ve `ok/changed/failed`. Khong nen dung no nhu mot SSH loop chay shell script kho rollback.
+
 Inventory INI:
 
 ```ini

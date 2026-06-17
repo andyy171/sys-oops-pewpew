@@ -17,8 +17,11 @@ Các file quan trọng:
 | `~/.ssh/id_ed25519` | Private key của user |
 | `~/.ssh/id_ed25519.pub` | Public key |
 | `~/.ssh/authorized_keys` | Public key được phép login vào account |
+| `~/.ssh/known_hosts` | Host key của server đã từng kết nối |
 | `~/.ssh/config` | Client config |
+| `/etc/ssh/ssh_config` | Global client config |
 | `/etc/ssh/sshd_config` | Server config |
+| `/etc/ssh/ssh_known_hosts` | Known hosts dùng chung toàn hệ thống |
 
 ## 2. SSH Key và Config
 
@@ -31,8 +34,11 @@ ssh-keygen -t ed25519 -C "user@example.com"
 Copy public key:
 
 ```bash
+ssh-copy-id -n user@server
 ssh-copy-id user@server
 ```
+
+`ssh-copy-id -n` là dry-run: xem key nào sẽ được thêm vào server trước khi thay đổi `authorized_keys`. Sau khi copy key, test bằng session mới trước khi tắt password authentication.
 
 Ví dụ `~/.ssh/config`:
 
@@ -62,6 +68,37 @@ sudo systemctl reload sshd
 ```
 
 Hardening chi tiết hơn nằm ở [SUID, SGID, SELinux, PAM, auditd và Hardening](../03-security-logs-troubleshooting/03-suid-sgid-selinux-pam-auditd-hardening.md).
+
+### Host Key Và Known Hosts
+
+Host key định danh server SSH. Lần đầu kết nối, client thường hỏi có tin fingerprint của server không; production nên xác minh fingerprint qua kênh độc lập hoặc quản lý `/etc/ssh/ssh_known_hosts` bằng automation.
+
+Nếu thấy cảnh báo `REMOTE HOST IDENTIFICATION HAS CHANGED`, không xóa dòng trong `known_hosts` theo thói quen. Trước tiên xác nhận:
+
+```bash
+ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub
+ssh-keygen -F <host>
+ssh -vvv user@server
+```
+
+Nguyên nhân hợp lệ có thể là rebuild host, rotate host key hoặc đổi IP/DNS trỏ sang host khác. Nguyên nhân rủi ro là MITM, DNS spoofing hoặc host compromise.
+
+### SSH Agent
+
+`ssh-agent` giữ private key đã unlock trong session, giúp dùng key có passphrase mà không phải nhập lại liên tục:
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add ~/.ssh/id_ed25519
+ssh-add -l
+ssh-add -d ~/.ssh/id_ed25519
+```
+
+Guardrails:
+
+- Private key nên có passphrase nếu dùng trên workstation/admin laptop.
+- Không bật agent forwarding mặc định vào bastion không tin cậy.
+- Khi rời máy shared/bastion, remove key khỏi agent hoặc kết thúc session agent.
 
 ## 3. JumpHost / Bastion With ProxyJump
 
@@ -101,7 +138,32 @@ Agent forwarding warning:
 - Ưu tiên key riêng cho bastion hoặc certificate-based SSH nếu có.
 - Không đặt private key production lung tung trên bastion.
 
-## 4. LLDP For Datacenter Mapping
+## 4. SCP Và Copy File Qua SSH
+
+`scp` dùng SSH transport để copy file giữa local và remote host. Nó tiện cho thao tác nhỏ, nhưng với dữ liệu lớn, resume, bandwidth limit hoặc sync lặp lại, `rsync -e ssh` thường vận hành tốt hơn.
+
+```bash
+# Remote -> local
+scp user@server:/var/log/app.log ./app.log
+
+# Local -> remote
+scp ./config.yml user@server:/tmp/config.yml
+
+# Dùng port SSH khác
+scp -P 2222 ./file.txt user@server:/tmp/
+
+# Copy thư mục
+scp -r ./site user@server:/var/www/
+```
+
+Lưu ý vận hành:
+
+- `scp -P` dùng chữ hoa `P`, khác với `ssh -p`.
+- Không copy private key hoặc file secret vào host trung gian nếu không có lý do rõ.
+- Kiểm tra ownership/permission sau khi copy file cấu hình hoặc script deploy.
+- Với production, ưu tiên checksum hoặc `rsync --dry-run` khi copy nhiều file quan trọng.
+
+## 5. LLDP For Datacenter Mapping
 
 LLDP giúp host biết port switch/kết nối vật lý lân cận.
 
@@ -126,7 +188,7 @@ Use case:
 - Điều tra sai VLAN/cabling.
 - Mapping network trong datacenter/private cloud.
 
-## 5. Linux Bridge và veth
+## 6. Linux Bridge và veth
 
 Linux bridge hoạt động như switch layer 2 trong kernel. Nó thường dùng cho VM, container hoặc lab network.
 
@@ -143,7 +205,7 @@ sudo ip link add veth-a type veth peer name veth-b
 ip link show type veth
 ```
 
-## 6. Network Namespace
+## 7. Network Namespace
 
 Network namespace cô lập network stack: interface, route, ARP table, iptables/nft rule riêng.
 
@@ -177,7 +239,7 @@ sudo ip netns del ns1
 sudo ip netns del ns2
 ```
 
-## 7. libvirt Virtual Networking
+## 8. libvirt Virtual Networking
 
 libvirt thường tạo NAT network mặc định `virbr0`.
 
@@ -196,7 +258,7 @@ Network mode thường gặp:
 
 Chọn mode theo mục tiêu: NAT phù hợp lab/desktop, bridge phù hợp VM cần hiện diện như một host thật trong VLAN, isolated phù hợp sandbox không cần ra ngoài.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 ### SSH Failed
 

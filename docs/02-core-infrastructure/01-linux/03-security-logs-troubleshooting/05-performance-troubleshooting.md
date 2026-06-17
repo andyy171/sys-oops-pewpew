@@ -78,6 +78,13 @@ perf top 2>/dev/null
 - Compression/encryption/build job.
 - Query hoặc batch job nặng.
 
+Đọc CPU theo capacity thực tế: architecture (`x86_64`, `aarch64`), số socket/core/thread, clock, cache và NUMA đều ảnh hưởng workload. Thêm core chỉ giúp khi workload có thể chạy song song; workload single-thread hoặc bị lock contention có thể chậm dù máy còn nhiều core rảnh.
+
+```bash
+lscpu
+cat /proc/cpuinfo | head -40
+```
+
 ### Xử lý
 
 - Xác định owner của process.
@@ -127,6 +134,8 @@ journalctl -k --since "1 hour ago"
 ## 5. High Load Average
 
 Load average cao không luôn đồng nghĩa CPU cao. Nó gồm task running và uninterruptible sleep, thường liên quan I/O.
+
+Ba số trong `uptime` là load trung bình 1, 5 và 15 phút. So sánh chúng với nhau để biết tải mới tăng đột biến hay đã kéo dài; so sánh với số CPU logical để tránh kết luận sai. Ví dụ load `8` trên máy 2 vCPU nghiêm trọng hơn nhiều so với load `8` trên máy 64 vCPU, nhưng vẫn cần kiểm tra process state và iowait.
 
 ```bash
 uptime

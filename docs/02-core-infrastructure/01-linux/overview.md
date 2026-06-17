@@ -67,6 +67,9 @@ Sysadmin/SRE giỏi không chỉ nhớ lệnh. Khi vận hành Linux trong produ
 - [User, Permission và Access Control Cơ Bản](./01-core-system/02-users-permissions-access.md)
 - [Package, Process và Service Management](./01-core-system/03-package-process-service.md)
 - [Kernel, procfs, sysfs và System Information](./01-core-system/04-kernel-proc-sys-system-info.md)
+- [RHEL/CentOS Server Installation](./01-core-system/05-rhel-centos-server-installation.md)
+- [LAMP Stack: Apache, MariaDB/MySQL và PHP](./01-core-system/06-lamp-stack-apache-mariadb-php.md)
+- [Linux GUI, Localization Và Printing](./01-core-system/07-linux-gui-localization-printing.md)
 
 ## 02-storage-networking
 

@@ -39,6 +39,17 @@ Xóa IP tạm thời:
 sudo ip addr del 10.0.0.10/24 dev eth0
 ```
 
+Các thay đổi bằng `ip addr`, `ip route` và `ip link` thường là runtime state, mất sau reboot hoặc khi network manager apply lại config. Trên server remote, đổi IP/route có thể làm mất SSH; cần console/OOB, maintenance window hoặc rollback command đã chuẩn bị sẵn.
+
+IPv4 dùng địa chỉ 32-bit và subnet/CIDR để tách network part với host part. Các private range thường gặp là `10.0.0.0/8`, `172.16.0.0/12` và `192.168.0.0/16`; chúng không route trực tiếp trên Internet nếu không đi qua NAT, proxy, VPN hoặc route riêng.
+
+IPv6 dùng địa chỉ 128-bit, có thể rút gọn bằng `::` một lần trong địa chỉ. Link-local address bắt đầu bằng `fe80::` chỉ có ý nghĩa trên local link; khi ping link-local thường phải chỉ interface zone.
+
+```bash
+ip -6 addr show
+ping -c 3 fe80::1%eth0
+```
+
 Persistent config phụ thuộc distro/network stack:
 
 - NetworkManager: `nmcli`.
@@ -53,6 +64,34 @@ nmcli connection show
 nmcli device status
 sudo nmcli connection modify <connection> ipv4.addresses 10.0.0.10/24 ipv4.gateway 10.0.0.1 ipv4.method manual
 sudo nmcli connection up <connection>
+```
+
+Với Ubuntu Server dùng Netplan, thay đổi thường nằm trong `/etc/netplan/*.yaml` và backend có thể là `systemd-networkd` hoặc NetworkManager. YAML sai indentation có thể làm cấu hình không apply được, nên kiểm tra qua console/OOB khi đổi IP trên server remote.
+
+```bash
+sudo netplan try
+sudo netplan apply
+networkctl status 2>/dev/null || nmcli device status
+```
+
+Với RHEL-family dùng NetworkManager, ưu tiên `nmcli`/`nmtui` thay vì sửa file thủ công nếu distro đang quản lý connection bằng NetworkManager.
+
+Tạo connection mới bằng `nmcli` nên làm có kiểm soát, vì đặt sai `ifname`, gateway hoặc `ipv4.method` có thể làm host mất network sau khi `connection up`:
+
+```bash
+nmcli connection show
+nmcli device status
+sudo nmcli connection add type ethernet con-name <conn-name> ifname <interface> ipv4.addresses 10.0.0.10/24 ipv4.gateway 10.0.0.1 ipv4.method manual
+sudo nmcli connection up <conn-name>
+```
+
+Trước khi đổi persistent network config trên host remote, ghi lại state hiện tại:
+
+```bash
+ip -br addr
+ip route
+resolvectl status 2>/dev/null || cat /etc/resolv.conf
+nmcli connection show 2>/dev/null || true
 ```
 
 ## 3. Route
@@ -73,6 +112,8 @@ Thêm route tạm thời:
 ```bash
 sudo ip route add 10.20.0.0/16 via 10.0.0.254 dev eth0
 ```
+
+NAT/PAT/masquerade giúp nhiều host private đi ra ngoài qua một địa chỉ public hoặc địa chỉ upstream, nhưng NAT không phải firewall. Vẫn cần policy rõ cho inbound, outbound, stateful rule, security group hoặc firewall rule ở đúng lớp.
 
 Troubleshooting route:
 
@@ -122,7 +163,42 @@ sudo hostnamectl set-hostname node-1.example.com
 10.0.0.10 node-1.example.com node-1
 ```
 
-Không dùng `/etc/hosts` để che lỗi DNS lâu dài nếu hệ thống cần scale.
+Trên nhiều distro, NSS thường kiểm tra `/etc/hosts` trước DNS theo `/etc/nsswitch.conf`. Vì vậy một entry cũ trong `/etc/hosts` có thể làm `dig` đúng nhưng application vẫn resolve sai. Không dùng `/etc/hosts` để che lỗi DNS lâu dài nếu hệ thống cần scale.
+
+`/etc/resolv.conf` có thể là file thật hoặc symlink do NetworkManager, systemd-resolved, netplan hoặc DHCP client quản lý. Trước khi sửa tay, kiểm tra owner/backend:
+
+```bash
+ls -l /etc/resolv.conf
+readlink -f /etc/resolv.conf
+resolvectl status 2>/dev/null || true
+nmcli dev show 2>/dev/null | grep -E 'DNS|DOMAIN'
+```
+
+Sửa trực tiếp file do backend quản lý thường bị ghi đè sau DHCP renew, reboot hoặc network reload.
+
+### DNS, NSS Và Split-Horizon Troubleshooting
+
+Không phải mọi lỗi "DNS sai" đều nằm ở DNS server. Linux application thường resolve name qua NSS stack, nên kết quả có thể đến từ `/etc/hosts`, mDNS, LDAP/SSSD hoặc DNS tùy `/etc/nsswitch.conf`. Vì vậy `dig` đúng nhưng app vẫn sai thường là dấu hiệu cần kiểm tra NSS hoặc local override.
+
+Checklist nhanh:
+
+```bash
+getent hosts app.example.com
+dig app.example.com
+cat /etc/nsswitch.conf
+grep -n "app.example.com" /etc/hosts
+resolvectl status 2>/dev/null || true
+```
+
+Với split-horizon DNS qua VPN hoặc nhiều search domain, kiểm tra resolver theo interface và domain route thay vì chỉ nhìn một dòng `nameserver`:
+
+```bash
+resolvectl domain
+resolvectl dns
+nmcli dev show 2>/dev/null | grep -E 'DNS|DOMAIN'
+```
+
+Nếu chỉ một subnet hoặc chỉ khi bật VPN mới lỗi, kiểm tra route tới DNS server, search domain, policy routing, firewall outbound `53/udp`, `53/tcp` và proxy policy của tổ chức. Không sửa `/etc/hosts` dài hạn để che lỗi DNS nội bộ trừ khi đó là break-glass tạm thời đã ghi vào ticket.
 
 ## 6. Connectivity Tools
 
@@ -153,6 +229,8 @@ Chọn tool theo tình huống:
 | Packet capture | `tcpdump -i <iface> -nn` | luôn giới hạn filter, count hoặc thời gian khi chạy production |
 | Throughput/traffic | `iftop`, `nload`, `iperf3` | dùng khi cần phân biệt bandwidth, latency và packet loss |
 | Firewall/NAT | `nft list ruleset`, `iptables -L -n -v`, `firewall-cmd --list-all`, `ufw status` | xác định frontend nào đang quản lý ruleset trước khi sửa |
+
+Legacy tools như `ifconfig`, `route`, `iwconfig`, `iwlist` vẫn gặp trên hệ cũ hoặc tài liệu cũ, nhưng hệ hiện đại nên ưu tiên `ip`, `ss`, `nmcli`, `resolvectl` và tool của network backend hiện tại. Không paste wireless key thật vào shell history bằng `iwconfig ... key s:<password>` trên máy dùng chung; ưu tiên NetworkManager profile, secret storage hoặc automation secret backend.
 
 ## 7. Firewall Overview
 
@@ -201,6 +279,52 @@ sudo iptables -L -n -v
 sudo ufw status verbose
 sudo ufw allow 22/tcp
 sudo ufw enable
+```
+
+## 7.1 Bonding Checklist
+
+Bonding gom nhiều NIC thành interface logic như `bond0` để tăng HA hoặc bandwidth. Mode `active-backup` thường an toàn hơn cho HA đơn giản; mode `802.3ad` cần switch cấu hình LACP tương ứng.
+
+Chọn mode theo mục tiêu:
+
+| Mode | Khi cân nhắc | Lưu ý |
+| --- | --- | --- |
+| `active-backup` / mode 1 | HA đơn giản, một link active một link standby | Thường ít yêu cầu switch nhất, phù hợp server production phổ thông. |
+| `802.3ad` / mode 4 | Aggregate bandwidth theo flow và HA qua LACP | Switch phải cấu hình LACP/port-channel đúng; một flow đơn lẻ thường không dùng tổng bandwidth của mọi link. |
+| `balance-rr` / mode 0 | Lab hoặc môi trường kiểm soát rất rõ | Có thể gây reorder packet nếu switch/path không hỗ trợ đúng; thận trọng trong production. |
+
+```bash
+cat /proc/net/bonding/bond0
+ip -d link show bond0
+ethtool <slave-interface>
+```
+
+Production notes:
+
+- Không giả định cấu hình Linux là đủ; phía switch phải khớp mode, VLAN/trunk và LACP.
+- Khi troubleshoot, đi theo thứ tự: physical link -> bond slave state -> VLAN/subinterface -> IP/route -> firewall/service.
+- Thay đổi bond/VLAN trên remote host có thể làm mất SSH; cần console/OOB hoặc rollback window.
+
+## 7.2 Layered Network Troubleshooting Flow
+
+Khi sự cố network không rõ nguyên nhân, đi từ lớp thấp lên lớp cao để tránh nhảy thẳng vào firewall hoặc DNS:
+
+1. **Link**: interface có `LOWER_UP`, speed/duplex đúng và không có error/drop bất thường không?
+2. **Address**: IP, prefix, VLAN/subinterface và duplicate address có đúng không?
+3. **Gateway/neighbor**: ARP/NDP tới gateway có resolve không?
+4. **Route**: `ip route get <target>` chọn đúng source IP, interface và table không?
+5. **Name resolution**: `getent hosts` và `dig` có thống nhất không?
+6. **Socket/service**: service có listen đúng IP/port không, client có reach được port không?
+7. **Policy**: local firewall, security group, ACL, proxy, VPN split route hoặc upstream firewall có chặn không?
+
+```bash
+ip -br link
+ip -br addr
+ip neigh
+ip route get <target-ip>
+getent hosts <name>
+sudo ss -tulpn
+nc -vz <host> <port>
 ```
 
 ## 8. Troubleshooting Checklist

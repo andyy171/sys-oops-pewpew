@@ -34,6 +34,14 @@ chmod g+s /srv/shared
 chmod +t /srv/tmp
 ```
 
+Diễn giải chính xác:
+
+- SUID trên executable làm process có effective UID của owner file, ví dụ `/usr/bin/passwd` thường cần ghi vào database password.
+- SGID trên executable làm process có effective GID của group file; nếu group là `root` thì đây là quyền group `root`, không tự động biến process thành UID `root`.
+- SGID trên directory giúp file/subdirectory mới kế thừa group của directory cha, hữu ích cho shared workspace.
+- Sticky bit trên directory như `/tmp` cho phép nhiều user ghi vào cùng thư mục nhưng chỉ owner file, owner directory hoặc root mới được xóa/rename entry.
+- Chữ hoa `S` hoặc `T` trong `ls -l` nghĩa là special bit được set nhưng execute bit tương ứng bị thiếu; đây thường là cấu hình đáng review.
+
 ## 3. Audit SUID/SGID
 
 ```bash
@@ -51,6 +59,8 @@ Baseline nên lưu theo host role:
 
 ```bash
 find / -xdev -perm -4000 -type f -print 2>/dev/null | sort | sudo tee /root/suid-baseline.txt
+find / -xdev -perm /6000 -type f -print 2>/dev/null | sort | sudo tee /root/suid-sgid-baseline.txt
+diff -u /root/suid-sgid-baseline.txt /root/suid-sgid-current.txt
 ```
 
 SUID bất thường khi:
@@ -73,6 +83,13 @@ rpm -V passwd
 ```
 
 Không remove SUID/SGID bừa theo kết quả `find`. Baseline hợp lệ khác nhau theo distro, package set và role của host; cần đối chiếu package database/change history trước khi xử lý.
+
+Guardrails:
+
+- Dùng `-xdev` trong audit định kỳ để tránh quét sang NFS, container mount, backup mount hoặc filesystem lớn ngoài scope. Nếu cần audit toàn bộ cây `/`, ghi rõ window và loại trừ mount không liên quan.
+- Lưu baseline ở nơi chỉ root/security team đọc được; danh sách binary đặc quyền là thông tin hữu ích cho attacker.
+- Nếu phát hiện file mới có SUID/SGID, thu thập `ls -l`, `stat`, checksum, package owner, mtime/ctime và change ticket trước khi sửa quyền hoặc xóa file.
+- Với binary nghi compromise, ưu tiên cô lập host hoặc remove execute bit theo incident runbook sau khi đã giữ evidence; không overwrite file trước khi forensic owner đồng ý.
 
 ## 4. SELinux
 
@@ -125,6 +142,20 @@ Notes:
 - Ưu tiên sửa context/boolean/policy đúng.
 - `audit2allow` cần review kỹ trước khi áp dụng.
 
+Troubleshoot denial nên đi theo thứ tự:
+
+```bash
+getenforce
+sestatus
+sudo ausearch -m AVC,USER_AVC -ts recent
+ps -eZ | grep <process>
+ls -Z <path>
+sudo getsebool -a | grep <service>
+sudo restorecon -Rv <path>
+```
+
+`permissive` không phải là tắt SELinux; nó vẫn log violation nhưng không chặn. Dùng tạm để xác minh nguyên nhân, sau đó sửa context/boolean/policy và đưa về enforcing.
+
 ## 5. AppArmor Overview
 
 AppArmor phổ biến trên Ubuntu/Debian.
@@ -140,6 +171,39 @@ Profile thường nằm dưới:
 ```text
 /etc/apparmor.d/
 ```
+
+Access chỉ thành công khi DAC và MAC đều cho phép:
+
+```text
+file permission / ACL allows
+AND
+AppArmor profile allows
+```
+
+Vì vậy khi app bị `permission denied`, không chỉ nhìn `chmod/chown`; cần kiểm tra profile mode, denial log và file path thật sau symlink/bind mount.
+
+## 5.1 UFW Và firewalld Safety Notes
+
+Với Ubuntu/UFW, khi đổi SSH port trên remote host:
+
+```text
+allow port mới
+-> validate sshd config
+-> reload sshd
+-> test session mới
+-> chỉ xóa port cũ sau khi test thành công
+```
+
+Với RHEL/firewalld, phân biệt runtime và permanent rule:
+
+```bash
+sudo firewall-cmd --zone=public --add-service=https
+sudo firewall-cmd --zone=public --add-service=https --permanent
+sudo firewall-cmd --reload
+sudo firewall-cmd --zone=public --list-all
+```
+
+Rule có `--permanent` cần `--reload` mới vào runtime. Rule không permanent có hiệu lực ngay nhưng mất sau reload/reboot.
 
 ## 6. PAM
 

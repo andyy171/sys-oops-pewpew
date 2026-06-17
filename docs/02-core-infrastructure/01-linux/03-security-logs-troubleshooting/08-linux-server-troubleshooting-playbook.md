@@ -160,14 +160,25 @@ Checklist:
 Với server gửi mail, kiểm tra theo chuỗi:
 
 ```text
-app -> local MTA -> queue -> DNS/MX -> remote SMTP -> spam/filtering -> inbox
+app -> local MUA/MDA -> local MTA -> queue -> DNS/MX -> remote SMTP -> spam/filtering -> inbox
 ```
+
+Mental model nhanh:
+
+| Thành phần | Vai trò |
+|---|---|
+| MUA | User-facing client đọc/gửi mail, ví dụ `mail`, `mailx`, webmail hoặc app client. |
+| MDA | Giao mail vào mailbox local, ví dụ mail spool dưới `/var/spool/mail` hoặc `/var/mail`. |
+| MTA | Chuyển mail local/remote, ví dụ Postfix, Sendmail, Exim. |
 
 Command:
 
 ```bash
+mail -s "test message" <local-user>
 mailq 2>/dev/null || postqueue -p 2>/dev/null
+sendmail -bp 2>/dev/null || true
 journalctl -u postfix --since "1 hour ago" 2>/dev/null
+grep -Rin "deferred\\|bounced\\|reject\\|warning" /var/log/mail* /var/log/maillog 2>/dev/null
 dig MX example.com
 nc -vz <smtp-host> 25
 ```
@@ -178,6 +189,22 @@ nc -vz <smtp-host> 25
 - DNS MX/SPF/DKIM/DMARC;
 - port 25 outbound có bị cloud/provider chặn không;
 - remote SMTP trả mã lỗi gì.
+- local account có mailbox đúng path không;
+- username case-sensitive/case-normalization có làm Postfix/local delivery fail không;
+- alias hoặc forward có redirect mail sang người nhận khác không.
+
+Alias và forward:
+
+```bash
+grep '^support:' /etc/aliases
+sudoedit /etc/aliases
+sudo newaliases
+test -f ~/.forward && ls -l ~/.forward
+```
+
+`/etc/aliases` cần chạy `newaliases` sau khi sửa để cập nhật database alias. `.forward` là per-user forwarding, thường cần permission không quá mở, ví dụ `0644`, và có thể làm người dùng tưởng mail bị mất vì mail đã được chuyển sang mailbox khác.
+
+Không xóa file queue thô trong `/var/spool` để "dọn nhanh" nếu chưa snapshot/ghi lại Queue ID và hiểu MTA đang dùng. Ưu tiên hold/defer/requeue/delete bằng tool của MTA tương ứng và giữ evidence nếu đang điều tra incident hoặc data leakage.
 
 ## Web Server Problem
 

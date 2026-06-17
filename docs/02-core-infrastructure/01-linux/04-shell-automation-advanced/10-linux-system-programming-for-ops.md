@@ -161,6 +161,10 @@ Unix socket rất phổ biến trong service local như Docker socket, database 
 
 Thread chia sẻ address space trong cùng process. Lợi ích là concurrency nhẹ hơn process, nhưng rủi ro là race condition, deadlock và tài nguyên dùng chung bị tranh chấp.
 
+![IPC context switch](./images/ipc-context-switch.png)
+
+Process có isolation mạnh hơn vì mỗi process có address space, file table và security context riêng. Cái giá là tạo process và context switch thường đắt hơn: kernel phải chuyển user/kernel mode, đổi process context, cập nhật memory map/MMU và có thể làm xáo trộn CPU cache/TLB. Thread nhẹ hơn vì nhiều thread trong cùng process chia sẻ address space, nhưng chính vì chia sẻ nên application phải tự quản lý mutex, condition variable, ordering và lifecycle của dữ liệu dùng chung.
+
 Operational signals:
 
 - CPU cao nhưng throughput không tăng.
@@ -175,6 +179,30 @@ ps -L -p <pid>
 top -H -p <pid>
 cat /proc/<pid>/status | grep -E 'Threads|VmRSS|FDSize'
 ```
+
+## Server Concurrency Models
+
+Khi một service xử lý nhiều connection hoặc request, có ba mô hình hay gặp:
+
+| Mô hình | Cách hoạt động | Điểm mạnh | Rủi ro vận hành |
+| --- | --- | --- | --- |
+| Iterative / single-threaded blocking | Một request được xử lý xong rồi mới nhận request tiếp theo | Đơn giản, dễ debug | Disk/network blocking làm toàn service đứng chờ |
+| Thread/process per request hoặc worker pool | Dispatcher nhận request rồi giao cho worker thread/process | Giữ code tuần tự, tận dụng blocking I/O và multicore | Thread/process leak, contention, pool exhaustion, memory tăng |
+| Event loop / finite-state machine | Một hoặc vài thread dùng nonblocking I/O và state machine | Hiệu quả với nhiều connection idle | Code phức tạp, bug state/race khó đọc, một callback chậm có thể chặn loop |
+
+Trong production, không chọn mô hình chỉ theo benchmark synthetic. Kiểm tra workload thật: tỷ lệ CPU-bound vs I/O-bound, thời gian chờ disk/network, số connection idle, request fan-out, memory per connection và khả năng observability của runtime.
+
+Pre-check khi service có dấu hiệu nghẽn concurrency:
+
+```bash
+ps -L -p <pid>
+top -H -p <pid>
+ss -tanp | grep '<process-name>'
+lsof -p <pid> | wc -l
+cat /proc/<pid>/limits
+```
+
+Nếu phải tăng thread/process pool, tăng theo từng bước nhỏ và theo dõi latency, queue depth, memory, context switch rate và error rate. Rollback bằng cách trả lại cấu hình pool cũ; đừng restart service trước khi giữ lại log và metrics quanh thời điểm nghẽn nếu còn cần RCA.
 
 ## Debugging Native Programs
 
@@ -199,6 +227,32 @@ coredumpctl info <pid>
 ```
 
 `strace` có overhead và có thể lộ dữ liệu nhạy cảm trong argument/syscall. Không chạy lâu trên production nếu chưa có lý do rõ.
+
+### Strace Trong Container
+
+Container vẫn gọi Linux kernel của host. Vì vậy cùng một image có thể chạy khác nhau giữa các host nếu kernel version, seccomp, SELinux/AppArmor, cgroup mode, filesystem hoặc Docker runtime khác nhau.
+
+Khi container fail chỉ trên một host:
+
+```bash
+docker inspect <container> --format '{{.State.Pid}} {{.State.ExitCode}} {{.State.Error}}'
+docker top <container>
+```
+
+Nếu cần quan sát syscall:
+
+```bash
+PID=$(docker inspect --format '{{.State.Pid}}' <container>)
+sudo strace -f -p "$PID" -o /tmp/container-strace.txt
+```
+
+So sánh trace giữa host tốt và host lỗi để tìm syscall trả `ENOENT`, `EACCES`, `EPERM`, `EINVAL` hoặc `ENOSYS`. Ví dụ `ENOSYS` có thể gợi ý kernel không hỗ trợ syscall mà binary đang dùng; `EACCES`/`EPERM` có thể đến từ capability, seccomp hoặc MAC policy.
+
+Guardrails:
+
+- Strace có thể capture secret trong argv, env, path hoặc network-related syscall; bảo vệ output như evidence nhạy cảm.
+- Thu trace ngắn theo time window tái hiện lỗi, không để chạy vô hạn.
+- Nếu image tối giản không có `strace`, attach từ host vào PID container thay vì cài tool vào image production.
 
 ## Shared Libraries
 

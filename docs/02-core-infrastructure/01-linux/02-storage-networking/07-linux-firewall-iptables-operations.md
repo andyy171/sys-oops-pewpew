@@ -102,6 +102,23 @@ Ví dụ xóa rule theo line number sau khi kiểm tra:
 sudo iptables -D INPUT <line-number>
 ```
 
+## UFW Va firewalld Change Guardrails
+
+Neu dung `ufw` hoac `firewalld`, workflow van phai theo nguyen tac allow truoc, deny sau:
+
+```text
+allow admin source/new SSH port
+-> allow service ports theo source CIDR
+-> validate tu mot client ben ngoai host
+-> moi apply default deny hoac remove port cu
+```
+
+Voi `firewalld`, phan biet runtime va permanent rule:
+
+- runtime rule co hieu luc ngay nhung co the mat sau reload/reboot;
+- permanent rule can reload de vao runtime;
+- khong tron nhieu frontend firewall neu chua biet backend ruleset dang duoc quan ly boi cong cu nao.
+
 ## NAT Patterns
 
 DNAT chuyển traffic vào service nội bộ:
@@ -186,4 +203,4 @@ Trước khi persist rule, cần có review, backup ruleset cũ và test rollbac
 - [IP, Route, DNS và Firewall](./04-ip-route-dns-firewall.md)
 - [Linux Routing, Netfilter Và Policy Routing](./06-linux-routing-netfilter-policy-routing.md)
 - [Linux Incident Response Live Triage](../03-security-logs-troubleshooting/07-linux-incident-response-live-triage.md)
-- [Network Tools And Troubleshooting](../../02-network/Tools%20&%20Troubleshooting/netstat,%20ss,%20tcpdump,%20nmap,%20netcat.md)
+- [Network Troubleshooting Tools](../../02-network/07-network-operations-lifecycle/03-network-troubleshooting-tools.md)

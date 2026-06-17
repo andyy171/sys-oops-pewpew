@@ -19,6 +19,32 @@ Khác biệt quan trọng:
 
 NFSv3 thường dựa nhiều vào RPC service phụ trợ và UID/GID mapping đơn giản. NFSv4 gom nhiều chức năng hơn qua một port chính, hỗ trợ namespace/export hiện đại hơn và thường dễ vận hành qua firewall hơn. Khi troubleshoot, luôn kiểm tra version client/server đang thương lượng.
 
+### Naming, File Handles And Automount
+
+NFS làm remote filesystem trông như một phần của local name space. Cùng một exported directory có thể được mount ở path khác nhau trên từng client, nên tên file không nhất thiết global giữa các máy. Nếu team cần chia sẻ path trong script/runbook, phải chuẩn hóa mount point, ví dụ cùng dùng `/mnt/shared` hoặc `/home/<user>`.
+
+NFS dùng file handle do server tạo để client tham chiếu file sau khi lookup path. File handle nên ổn định trong vòng đời file và không được tái sử dụng bừa bãi sau khi file bị xóa, vì client có thể cache handle để tránh lookup lặp lại.
+
+Operational implications:
+
+- Stale file handle thường xuất hiện khi file/export bị xóa, recreate, remount hoặc server backend thay đổi identity.
+- Automount giúp tránh boot bị treo khi network storage chưa sẵn sàng, nhưng lần truy cập đầu tiên có thể chịu latency mount.
+- Nếu dùng nhiều NFS server/export, chuẩn hóa mount point để tránh cùng một file có tên khác nhau trên mỗi client.
+- Với NFSv4, namespace/export và lookup crossing mount point tốt hơn NFSv3, nhưng vẫn phải kiểm tra version thực tế client/server đang dùng.
+
+### NFS Client Cache And Delegation
+
+NFS client thường cache file attributes, file data và lookup result để giảm round trip tới server. Điều này giúp performance nhưng làm consistency yếu hơn local filesystem: một client có thể thấy metadata hoặc data cũ trong một khoảng thời gian ngắn.
+
+NFSv4 có delegation/callback để server cho client quyền cache mạnh hơn và gọi callback khi cần thu hồi quyền đó. Khi callback path bị firewall, NAT hoặc network policy chặn, client có thể giữ assumption cũ lâu hơn hoặc performance giảm vì server phải thu hồi delegation thất bại.
+
+Production checks:
+
+- Xác nhận mount option liên quan cache/attribute timeout trước khi kết luận "NFS mất dữ liệu".
+- Kiểm tra nhiều client có ghi cùng file không; shared write cần application-level locking hoặc workload design phù hợp.
+- Nếu thấy stale read, so sánh trực tiếp trên server/export và trên nhiều client, rồi kiểm tra attribute cache timeout, lock daemon/version và callback reachability.
+- Không tắt cache diện rộng trong production nếu chưa đo latency/throughput, vì backend NFS server có thể bị tăng tải đột ngột.
+
 ### Server
 
 ```bash
@@ -113,6 +139,18 @@ Nếu môi trường dùng Kerberos:
 kinit user@EXAMPLE.COM
 sudo mount -t cifs //fileserver/share /mnt/smb -o sec=krb5,cruid=$(id -u),vers=3.0
 ```
+
+### SMB Share Design Guardrails
+
+SMB/Samba thường là điểm giao giữa Linux permission, Windows ACL expectation và identity domain. Trước khi expose share cho nhiều user, cần quyết định rõ:
+
+- share dùng local user, domain user, LDAP/AD/Kerberos hay guest access;
+- mapping UID/GID trên Linux server có ổn định không;
+- path backend có SELinux/AppArmor policy hoặc filesystem ACL phù hợp không;
+- protocol version tối thiểu là gì và có cần SMB signing/encryption không;
+- audit log, retention và owner của dữ liệu share nằm ở đâu.
+
+Tránh bật `guest ok = yes` hoặc `writable = yes` rộng cho thư mục dùng chung production. Sau mỗi thay đổi `smb.conf`, chạy `testparm`, kiểm tra service log và test bằng user thật thay vì chỉ mount bằng admin account.
 
 ## 4. Samba Server
 

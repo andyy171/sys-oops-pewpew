@@ -4,6 +4,8 @@
 
 LVM cho phép quản lý storage linh hoạt hơn partition truyền thống.
 
+LVM nằm trên device mapper: kernel expose logical block device dưới `/dev/mapper/*` hoặc symlink thân thiện như `/dev/vg_data/lv_app`. Vì vậy khi debug, cần tách rõ physical disk/LUN, partition, PV, VG, LV, filesystem và mount point.
+
 | Thành phần | Ý nghĩa |
 | --- | --- |
 | PV | Physical Volume, thường là disk/partition như `/dev/sdb1` |
@@ -124,6 +126,51 @@ sudo update-initramfs -u
 
 Trên RHEL-family, đường dẫn và lệnh rebuild initramfs có thể khác, ví dụ `dracut`.
 
+`mdadm --create`, `pvcreate`, `vgremove`, `lvremove` và thao tác reinitialize RAID/LVM đều có thể phá dữ liệu nếu chọn sai device. Trước khi chạy, kiểm tra read-only bằng `lsblk -f`, serial/WWID, mountpoint, `/proc/mdstat`, `pvs`, `vgs`, `lvs` và backup/snapshot. RAID giúp chịu lỗi thiết bị tùy level nhưng không bảo vệ khỏi xóa nhầm, corruption, ransomware hoặc lỗi application.
+
+## 4.1 Multipath Overview
+
+Device Mapper Multipathing dùng khi server có nhiều path tới cùng một SAN/iSCSI/FC LUN. App và filesystem không nên mount trực tiếp từng path riêng lẻ như `/dev/sdX`; nên dùng logical multipath device.
+
+```text
+server HBA/NIC path A -> storage LUN
+server HBA/NIC path B -> storage LUN
+             -> /dev/mapper/mpathN
+             -> partition/LVM/filesystem
+```
+
+Lệnh quan sát an toàn:
+
+```bash
+multipath -ll
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL
+systemctl status multipathd
+kpartx -l /dev/mapper/mpathN
+```
+
+Production notes:
+
+- Xác nhận nhiều path trỏ tới cùng WWID trước khi tạo filesystem hoặc LVM.
+- Không format từng path thành nhiều filesystem riêng nếu chúng thực chất là cùng một LUN.
+- Khi path mất, kiểm tra storage fabric, zoning, iSCSI session, multipath policy và `multipathd` trước khi thao tác dữ liệu.
+- Nếu multipath device có partition table, `kpartx` có thể tạo mapping partition dưới `/dev/mapper/`; cần xác nhận đúng mapping trước khi mount, fsck hoặc tạo PV.
+
+## 4.2 Backup Strategy Dimensions
+
+Backup không chỉ là chọn một command. Trước khi viết job backup, cần xác định dữ liệu nào đáng bảo vệ, thay đổi nhanh tới đâu, restore cần nhanh mức nào và ai chịu trách nhiệm kiểm chứng.
+
+Các câu hỏi tối thiểu:
+
+- **Scope**: file cấu hình, application data, database, package list, systemd unit custom, secrets hay toàn bộ disk image?
+- **RPO**: có thể mất tối đa bao nhiêu dữ liệu, ví dụ vài phút, vài giờ hay một ngày?
+- **RTO**: service cần khôi phục trong bao lâu và có staging environment để test restore không?
+- **Consistency**: workload có cần quiesce, snapshot, dump native hoặc lock để tránh backup ở trạng thái nửa ghi không?
+- **Location**: backup có nằm độc lập khỏi host gốc, volume gốc và quyền xóa của cùng một account không?
+- **Verification**: backup được kiểm checksum, đọc thử, restore thử và ghi lại kết quả ở đâu?
+- **Retention**: giữ bao lâu, có legal/compliance hold không, và ai được phép xóa backup?
+
+Với hệ thống nhỏ, `rsync`, `tar` hoặc snapshot có thể đủ nếu có lịch chạy, retention, checksum và restore test. Với production quan trọng, ưu tiên thiết kế backup theo RPO/RTO, mã hóa, immutable/offsite copy, monitoring job failure và runbook restore rõ ràng. Backup chưa từng restore thử chỉ nên xem là hy vọng, chưa phải control vận hành đáng tin.
+
 ## 5. Backup With `rsync` và `tar`
 
 `rsync` phù hợp sync file/directory:
@@ -140,6 +187,28 @@ rsync -aHAX --delete /source/ backup-host:/backup/source/
 sudo tar --xattrs --acls -czf /backup/etc-$(date +%F).tar.gz /etc
 sudo tar -tzf /backup/etc-2026-05-20.tar.gz | head
 ```
+
+`cpio` hữu ích khi muốn archive từ danh sách file do command khác sinh ra, ví dụ `find`. Ưu tiên path tương đối hoặc restore vào thư mục staging để tránh ghi đè bất ngờ:
+
+```bash
+cd /etc
+find . -xdev -type f -print0 | cpio --null -ov -H newc > /backup/etc-files.cpio
+cpio -itv < /backup/etc-files.cpio
+mkdir -p /tmp/restore-cpio
+cd /tmp/restore-cpio
+cpio -idv --no-absolute-filenames < /backup/etc-files.cpio
+```
+
+`dd` tạo bản sao block-level và có blast radius rất cao vì `if=` và `of=` đảo ngược là có thể ghi đè dữ liệu nguồn. Không có dry-run thật sự cho `dd`; trước khi chạy phải xác nhận device bằng `lsblk -f`, `findmnt`, serial/WWID, trạng thái mount và backup/maintenance window.
+
+```bash
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL,SERIAL
+findmnt
+sudo dd if=/dev/sdX of=/backup/disk-sdX.img bs=64M status=progress conv=fsync
+sha256sum /backup/disk-sdX.img
+```
+
+Không dùng `dd` để wipe disk trong runbook chung nếu chưa có ticket, xác nhận đúng thiết bị, phương án rollback và chính sách xử lý media. Với disk loại bỏ khỏi production, ưu tiên quy trình sanitization của tổ chức/vendor hoặc hủy vật lý khi dữ liệu nhạy cảm.
 
 Nên backup:
 
