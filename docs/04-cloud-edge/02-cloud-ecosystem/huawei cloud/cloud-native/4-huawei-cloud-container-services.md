@@ -1,3 +1,5 @@
+﻿# 4 huawei cloud container services
+
 Huawei Cloud Container Services
 1. Huawei Cloud Full-stack Container Services
 Huawei Cloud cung cấp một bộ đầy đủ các dịch vụ container (Full-stack) để đáp ứng mọi nhu cầu từ phát triển ứng dụng, triển khai, vận hành đến quản lý vòng đời trên nền tảng đám mây. Kiến trúc này cho phép khách hàng lựa chọn mô hình phù hợp nhất với trạng thái hiện tại của ứng dụng và kỹ năng của đội ngũ.

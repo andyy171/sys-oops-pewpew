@@ -1,4 +1,4 @@
-Cloud Native Infrastructure: Kubernetes trên Huawei Cloud
+﻿Cloud Native Infrastructure: Kubernetes trên Huawei Cloud
 Container Cluster Management
 Giới thiệu về Quản lý Cluster Container
 Quản lý cluster container là nền tảng của kiến trúc cloud-native, cho phép triển khai, vận hành và quản lý các ứng dụng container hóa ở quy mô lớn.
@@ -128,7 +128,7 @@ bash
 # Tạo namespace
 kubectl create namespace my-namespace
 
-# Liệt kê namespace
+## Liệt kê namespace
 kubectl get namespaces
 ConfigMap và Secret
 ConfigMap: Lưu trữ dữ liệu cấu hình không nhạy cảm
@@ -136,7 +136,7 @@ ConfigMap: Lưu trữ dữ liệu cấu hình không nhạy cảm
 Secret: Lưu trữ thông tin nhạy cảm như mật khẩu, token
 
 yaml
-# ConfigMap example
+## ConfigMap example
 apiVersion: v1
 kind: ConfigMap
 metadata:

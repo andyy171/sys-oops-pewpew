@@ -1,4 +1,4 @@
-# 1. Độ Bền Mạng trong AWS - Network Resilience
+﻿# 1. Độ Bền Mạng trong AWS - Network Resilience
 Mạng trong AWS giống như hệ thống đường sá và giao thông trong một thành phố đám mây, đảm bảo ứng dụng của bạn luôn kết nối được với người dùng dù có sự cố. Hãy tưởng tượng bạn đang xây dựng một ứng dụng web (gọi là Cartogram) và muốn nó luôn online, bất kể một phần của AWS có vấn đề. Phần này sẽ giải thích cách đạt được độ bền ở hai cấp độ: cục bộ (trong một vùng như US-East-1) và toàn cầu (qua nhiều vùng).
 ## 1.1. Độ Bền Cục Bộ (Trong Một Vùng)
 - Tổng quan: Một vùng AWS (region) như US-East-1 là một khu vực địa lý chứa nhiều Khu vực Khả dụng (Availability Zones - AZ), ví dụ AZ A (us-east-1a) và AZ B (us-east-1b). Mỗi AZ là một trung tâm dữ liệu độc lập với nguồn điện và mạng riêng, giúp giảm nguy cơ tất cả cùng hỏng một lúc. Bạn xây ứng dụng trong một Virtual Private Cloud (VPC) – như một khu đất riêng trong vùng, nơi bạn đặt các mạng con (subnets) (như các con phố) trong từng AZ, cùng các thành phần như VPC router (định tuyến nội bộ) và Internet Gateway (cửa ngõ ra internet).
@@ -30,7 +30,7 @@ Mô phỏng sự cố bằng cách dừng ALB ở ap-southeast-2; kiểm tra xem
 Bổ sung: Nếu ứng dụng cần liên kết VPC giữa các vùng (ví dụ, để EC2 ở us-east-1 giao tiếp với cơ sở dữ liệu ở eu-west-1), sử dụng AWS Transit Gateway (VPC > Transit Gateways > Create). Tuy nhiên, độ bền cốt lõi vẫn dựa vào sự cô lập vùng và định tuyến Route 53.
 Tóm tắt: Ở mức cục bộ, dùng ALB để phân phối lưu lượng qua nhiều AZ. Ở mức toàn cầu, dùng Route 53 để chuyển hướng đến vùng hoạt động. Điều này giúp ứng dụng như Cartogram luôn online, từ sự cố nhỏ (AZ hỏng) đến lớn (vùng hỏng).
 
-# 2. Độ Bền Lưu Trữ trong AWS - Storage Resilience
+## 2. Độ Bền Lưu Trữ trong AWS - Storage Resilience
 Lưu trữ trong AWS giống như các kho hàng, mỗi loại có mức độ bảo vệ khác nhau trước sự cố. Phần này giải thích cách các dịch vụ lưu trữ phản ứng với thất bại ở cấp độ máy chủ EC2, AZ hoặc vùng, sử dụng hai vùng ví dụ: us-east-1 và ap-southeast-2.
 ## 2.1. Các Loại Lưu Trữ và Độ Bền
 
@@ -67,7 +67,7 @@ Từ snapshot ở ap-southeast-2, tạo EBS volume và gắn vào EC2 instance (
 Bổ sung: AWS Glacier là lưu trữ lưu trữ giá rẻ, bền như S3 nhưng lấy dữ liệu chậm hơn (vài giờ). Dùng Glacier cho backup dài hạn bằng cách cấu hình lifecycle rule trong S3 (S3 > Management > Lifecycle Rules) để chuyển object sang Glacier sau X ngày.
 Tóm tắt: Instance store cực kỳ rủi ro, chỉ dùng tạm thời. EBS tốt cho EC2 nhưng cần snapshot vào S3 để tăng độ bền. S3 và EFS bền ở mức vùng, phù hợp cho dữ liệu quan trọng. CRR giúp bảo vệ trước sự cố vùng. Hiểu rõ để chọn đúng loại lưu trữ khi thiết kế hệ thống hoặc trả lời câu hỏi thi.
 
-# 3. Độ Bền Tính Toán trong AWS - Compute Resilience
+## 3. Độ Bền Tính Toán trong AWS - Compute Resilience
 Tính toán là "động cơ" chạy ứng dụng, như máy chủ EC2 hoặc hàm Lambda. Phần này tập trung vào độ bền trong một vùng (us-east-1), vì không có dịch vụ tính toán toàn cầu thực sự. Độ bền toàn cầu đạt được bằng cách sao chép hệ thống qua nhiều vùng và dùng Route 53 (đã đề cập ở phần mạng).
 ## 3.1. Các Dịch Vụ Tính Toán và Độ Bền
 

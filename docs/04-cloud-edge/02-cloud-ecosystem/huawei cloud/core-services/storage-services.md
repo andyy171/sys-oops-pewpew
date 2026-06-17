@@ -80,7 +80,7 @@ Cost optimization through automatic movement to cheaper storage classes
 
 ### Billing 
 
-<img src="/huawei cloud/images/obs-billing.png" >
+<img src="../images/obs-billing.png" >
 No minimum cost or upfront fees
 
 Pay-only-for-what-you-use model
@@ -98,7 +98,7 @@ Optional services (e.g., cross-region replication)
 
 ## EVS - Elastic Volume Service
 ### Hightlight
-<img src="/huawei cloud/images/evs-hightlight.png" >
+<img src="../images/evs-hightlight.png" >
 Block storage service for Elastic Cloud Servers (ECS)
 
 High performance, low latency storage
@@ -140,7 +140,7 @@ Use snapshots to create new disks or roll back data
 
 Snapshot chains maintain data change history
 ### EVS Disk lifecycle 
-<img src="/huawei cloud/images/evs-disk-lifecycle.png" >
+<img src="../images/evs-disk-lifecycle.png" >
 Create: Provision new disk
 
 Attach: Connect to ECS instance
@@ -242,7 +242,7 @@ Encryption in transit and at rest
 
 + Healthcare
 ## Comparison between storage Solutions 
-<img src="/huawei cloud/images/comparison-between-storage-solutions.png" >
+<img src="../images/comparison-between-storage-solutions.png" >
 
 The image provides a comprehensive comparison of Huawei Cloud storage services across these dimensions:
 
