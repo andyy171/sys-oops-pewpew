@@ -71,3 +71,6 @@ crash.log
 
 *.pem
 *.key
+
+
+CODEX_CHANGELOG.md
