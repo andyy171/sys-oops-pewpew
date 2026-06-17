@@ -1,20 +1,51 @@
-# Overview 
-> Repo bao gồm các ghi chú về các chủ điểm kiến thức system .
->
+# Learning Corner
 
-# Kiến thức cơ bản 
-## Storage 
-### [Tổng quan về Storage](/storage/01_overview.md)
-## File system 
-### [Tổng quan về Filesystem](/storage/filesystem/01_overview_and_types.md)
-### [Cấu trúc và Tổ chức thư mục ](/storage/filesystem/02_structure_and_layout.md)
-### [Quản lý truy cập & thực thi](/storage/filesystem/03_access_control_and_fuse.md)
-### [Quản lý bộ nhớ & I/O trong File System](/storage/filesystem/04_memory_io_and_space_management.md)
-### [Hiệu năng & Phục hồi](/storage/filesystem/05_performance_and_recovery.md)
+Markdown knowledge base for infrastructure, cloud, DevOps, SRE, Linux,
+networking, storage, Kubernetes, OpenStack, Ceph, observability, automation,
+and related engineering topics.
 
-# Kiến thức trọng tâm 
-## [Ceph Storage](https://github.com/andyy171/ceph-note/blob/b6fa6f0f0e7bb6af74b424a3ed7c7549a70dd284/docs/ceph/ceph-core-concepts.md)
-## [Kubernetes](https://github.com/andyy171/Kubernetes-headache/blob/d382bd939644c18436b11edf24be7d83a0f919bc/README.md)
+## Repository Layout
 
-# Kiến thức bổ sung 
+- `docs/01-architecture/`: architecture fundamentals, design principles,
+  tradeoffs, patterns, reliability, disaster recovery, and SRE concepts.
+- `docs/02-core-infrastructure/`: Linux, networking, storage, databases,
+  hardware, bare-metal operations, and Windows Server notes.
+- `docs/03-compute-and-orchestration/`: compute platforms, Docker, Kubernetes,
+  orchestration, and messaging or streaming systems.
+- `docs/04-cloud-edge/`: cloud fundamentals, AWS, Azure, GCP, Huawei Cloud,
+  OpenStack, and cloud operations.
+- `docs/05-Infrastructure-Automation/`: observability, security hardening,
+  CI/CD, infrastructure as code, Python automation, Git, and configuration
+  management.
+- `docs/06-programming-languages/`: programming language notes and
+  cross-language implementation patterns.
 
+## Local Development
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Serve the documentation locally:
+
+```bash
+mkdocs serve
+```
+
+Build the static site:
+
+```bash
+mkdocs build
+```
+
+## Documentation Rules
+
+- Keep reusable knowledge in canonical topic folders under `docs/`.
+- Prefer Vietnamese explanations while keeping common technical terms in
+  English when they are clearer.
+- Do not commit local agent configuration, workspace metadata, secrets, private
+  keys, large media files, or generated site output.
+- Use relative links for local Markdown pages and keep path casing exact because
+  CI runs on a case-sensitive Linux filesystem.

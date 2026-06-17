@@ -3,6 +3,10 @@ Thumbs.db
 ehthumbs.db
 .vscode/
 .idea/
+.obsidian/
+.codex/
+AGENTS.md
+**/AGENTS.md
 *.iml
 *.swp
 *~
