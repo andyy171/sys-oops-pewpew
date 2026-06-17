@@ -1,2 +1,0 @@
-# Thuật toán Load Balancing
-
