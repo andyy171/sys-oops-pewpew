@@ -163,6 +163,147 @@ docker logs --tail 50 ten_container
 ```bash
 docker logs -t ten_container
 ```
+
+## Image Lifecycle Và Di Chuyển Image
+
+### `docker commit`
+
+`docker commit` tạo image mới từ trạng thái hiện tại của container.
+
+```bash
+docker commit <container> <image-name>:<tag>
+```
+
+Lệnh này hữu ích trong lab hoặc khi cần snapshot tạm để phân tích. Với CI/CD hoặc production image, ưu tiên Dockerfile vì dễ review, tái tạo và audit hơn.
+
+### `docker save` và `docker load`
+
+Khi cần copy image qua môi trường không có registry, có thể export/import image dạng tar.
+
+```bash
+docker save --output app-image.tar <image-name>:<tag>
+docker load -i app-image.tar
+```
+
+Với production, registry vẫn là cách chuẩn hơn vì có versioning, access control, audit log, scanning và replication.
+
+### `docker export` và `docker import`
+
+`docker export` tạo TAR từ filesystem của một container, còn `docker import` tạo image mới từ filesystem phẳng đó. Cặp lệnh này không giữ đầy đủ image history, label, config, layer metadata như `save/load`.
+
+```bash
+docker export <container> -o container-rootfs.tar
+docker import container-rootfs.tar imported-image:<tag>
+```
+
+Guardrails:
+
+- Dùng `save/load` khi muốn di chuyển image release nguyên vẹn.
+- Dùng `export/import` chủ yếu cho lab, migration hoặc flatten có kiểm soát.
+- Không dùng `export/import` để che việc image từng chứa secret; nếu secret đã vào layer hoặc artifact, phải rotate/revoke secret và rebuild sạch.
+- TAR image/rootfs cần checksum/signature nếu chuyển qua môi trường khác.
+
+### `docker tag` và `docker push`
+
+Tag image theo registry/repository trước khi push:
+
+```bash
+docker tag app:local registry.example.com/project-a/app:<tag>
+docker push registry.example.com/project-a/app:<tag>
+```
+
+Tránh dùng `latest` như release identity duy nhất. Nên có tag theo version, git SHA hoặc build number.
+
+### `docker history`
+
+Xem layer của image và lệnh tạo layer:
+
+```bash
+docker history <image-name>:<tag>
+```
+
+Lệnh này hữu ích khi image phình to bất thường hoặc cần biết layer nào thêm package/file lớn.
+
+## Quan Sát Runtime
+
+### `docker stats`
+
+Theo dõi CPU, memory, network I/O và block I/O của container:
+
+```bash
+docker stats
+docker stats <container>
+```
+
+### `docker top`
+
+Xem process đang chạy trong container:
+
+```bash
+docker top <container>
+```
+
+### `docker diff`
+
+Xem thay đổi trong writable layer của container:
+
+```bash
+docker diff <container>
+```
+
+Ký hiệu thường gặp:
+
+- `A`: added
+- `C`: changed
+- `D`: deleted
+
+### `docker cp`
+
+Copy file giữa host và container:
+
+```bash
+docker cp <container>:/path/in/container ./local-path
+docker cp ./local-file <container>:/path/in/container
+```
+
+Với dữ liệu quan trọng, không dùng `docker cp` thay cho backup strategy. Hãy xác định volume/backend lưu dữ liệu thật.
+
+Có thể extract file từ image mà không cần container đang chạy bằng `docker create` rồi `docker cp`:
+
+```bash
+cid=$(docker create <image>:<tag>)
+docker cp "$cid":/path/in/image ./local-copy
+docker rm "$cid"
+```
+
+Pattern này hữu ích khi entrypoint của image khó override hoặc image start lỗi. Guardrails: chỉ đọc file cần thiết, không copy secret ra workspace chung, và xóa container tạm sau khi copy xong. Nếu image rất tối giản, cách này vẫn hoạt động vì `docker cp` đọc filesystem container từ daemon, không cần `cat` bên trong image.
+
+## Restart Policy Và Log Rotation
+
+Restart policy:
+
+```bash
+docker run -d --restart unless-stopped --name app <image>:<tag>
+docker update --restart unless-stopped app
+```
+
+Cấu hình log rotation mặc định cho Docker daemon thường đặt trong `/etc/docker/daemon.json`:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+```
+
+Warning: restart Docker daemon có thể ảnh hưởng container đang chạy tùy cấu hình và môi trường. Kiểm tra maintenance window, backup và kế hoạch rollback trước khi đổi cấu hình production.
+
+```bash
+sudo systemctl restart docker
+```
 ## Quản lý image
 ### `docker pull` - Tải image từ Docker Hub hoặc registry 
 
@@ -237,8 +378,26 @@ docker logs -t ten_container
 
 ### `docker system prune` - Xóa container, network, image không sử dụng 
 
+Warning: `prune` có thể xóa dữ liệu/metadata bạn vẫn cần cho rollback hoặc debug. Luôn chạy lệnh quan sát trước:
+
+```bash
+docker system df
+docker container ls -a
+docker image ls
+docker volume ls
+docker network ls
+```
+
 ### `docker container prune` - Xóa tất cả container đã dừng 
 
 ### `docker image prune` - Xóa image 'dangling'(lơ lửng không gắn tag hay liên kết bất kỳ container nào đang hoạt động, thường xuất hiện ở dạng <none>:<none>) hoặc không dùng đến 
 
-### `docker network prune` - Xóa mạng không còn gắn container nào 
+### `docker network prune` - Xóa mạng không còn gắn container nào
+
+## Related Pages
+
+- [Docker Overview](./overview.md)
+- [Image Layer, Dockerfile Best Practices](../Image%20layer,%20Dockerfile%20best%20practices.md)
+- [Volumes, Bind Mount, tmpfs](../04-Volumes,%20Bind%20mount,%20tmpfs.md)
+- [Network Mode Bridge, Host, Overlay](../03-Network%20mode%20bridge,%20host,%20overlay.md)
+- [Docker Compose Services](../05-Docker%20Compose%20services.md)
